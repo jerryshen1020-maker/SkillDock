@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillDock 全状态设计参考</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f7;
+            --bg-tertiary: #e8e8ed;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #007aff;
+            --success: #34c759;
+            --warning: #ff9500;
+            --error: #ff3b30;
+            --border: #e0e0e0;
+            --hover: #f0f0f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        h1 { font-size: 24px; margin-bottom: 8px; }
+        h2 { font-size: 18px; margin: 24px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        h3 { font-size: 15px; margin: 16px 0 8px; color: var(--accent); }
+
+        .meta { color: var(--text-secondary); font-size: 12px; margin-bottom: 24px; }
+
+        .toc { background: var(--bg-secondary); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+        .toc ul { list-style: none; }
+        .toc li { margin: 6px 0; }
+        .toc a { color: var(--accent); text-decoration: none; font-size: 13px; }
+        .toc a:hover { text-decoration: underline; }
+
+        .state-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .state-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .state-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .state-badge.success { background: rgba(52, 199, 89, 0.2); color: var(--success); }
+        .state-badge.loading { background: rgba(0, 122, 255, 0.2); color: var(--accent); }
+        .state-badge.empty { background: rgba(160, 160, 160, 0.2); color: var(--text-secondary); }
+        .state-badge.error { background: rgba(255, 59, 48, 0.2); color: var(--error); }
+        .state-badge.warning { background: rgba(255, 149, 0, 0.2); color: var(--warning); }
+
+        .mockup {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 16px;
+            margin: 12px 0;
+            font-size: 12px;
+            min-height: 80px;
+        }
+
+        .description { color: var(--text-secondary); font-size: 13px; }
+
+        /* Toast 样式 */
+        .toast-container {
+            position: relative;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+
+        .toast {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast:last-child { margin-bottom: 0; }
+        .toast.success { background: rgba(52, 199, 89, 0.15); border: 1px solid rgba(52, 199, 89, 0.3); }
+        .toast.error { background: rgba(255, 59, 48, 0.15); border: 1px solid rgba(255, 59, 48, 0.3); }
+        .toast.warning { background: rgba(255, 149, 0, 0.15); border: 1px solid rgba(255, 149, 0, 0.3); }
+
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin: 12px 0;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        tr:hover { background: var(--hover); }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .tag.active { background: rgba(0, 122, 255, 0.2); color: var(--accent); }
+
+        /* 边界情况 */
+        .boundary-item {
+            display: flex;
+            gap: 16px;
+            margin: 12px 0;
+        }
+
+        .boundary-example {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <h1>SkillDock 全状态设计参考</h1>
+    <p class="meta">版本: v1.0 | 模块: SkillDock | 更新日期: 2025-02-23</p>
+
+    <div class="toc">
+        <strong>目录</strong>
+        <ul>
+            <li><a href="#state-normal">1. 正常态</a></li>
+            <li><a href="#state-loading">2. 加载态</a></li>
+            <li><a href="#state-empty">3. 空态</a></li>
+            <li><a href="#state-filter">4. 筛选无结果</a></li>
+            <li><a href="#state-error">5. 错误态</a></li>
+            <li><a href="#state-partial">6. 部分可用</a></li>
+            <li><a href="#toast">7. Toast 反馈汇总</a></li>
+            <li><a href="#boundary">8. 边界情况</a></li>
+            <li><a href="#interaction">9. 交互行为规则表</a></li>
+        </ul>
+    </div>
+
+    <!-- 1. 正常态 -->
+    <h2 id="state-normal">1. 正常态 <span class="state-badge success">有数据</span></h2>
+    <div class="state-section">
+        <div class="state-title">
+            <span>✅</span>
+            默认视图，展示所有可用 skill
+        </div>
+        <div class="description">
+            用户进入应用后看到的主界面，显示Skills仓库中的所有 skill 列表，每个 skill 展示名称、描述、支持的应用标签。
+        </div>
+        <div class="mockup">
+            <div style="color: var(--text-secondary);">└─ 正常态：28 个 skill 列表，每个卡片显示名称、描述、应用标签、开关</div>
+        </div>
+    </div>
+
+    <!-- 2. 加载态 -->
+    <h2 id="state-loading">2. 加载态 <span class="state-badge loading">加载中</span></h2>
+    <div class="state-section">
+        <div class="state-title">
+            <span>⏳</span>
+            扫描 skill 目录时
+        </div>
+        <div class="description">
+            首次加载或刷新时，从配置的来源目录扫描 skill，展示加载进度。
+        </div>
+        <div class="mockup">
+            <div style="display: flex; align-items: center; gap: 12px; color: var(--text-secondary);">
+                <div style="width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <span>正在扫描 skill 目录...</span>
+            </div>
+            <div style="margin-top: 12px; font-size: 11px; color: var(--text-secondary);">
+                ~/.claude/skills ✓<br>
+                /Users/mac/Documents/Claude/skills/common ✓<br>
+                /Users/mac/Documents/Claude/skills/superpowers 扫描中...
+            </div>
+        </div>
+        <div class="description" style="margin-top: 12px;">
+            <strong>规则：</strong>
+            <ul style="margin-top: 8px; padding-left: 20px;">
+                <li>加载态显示 spinner + 禁用所有交互</li>
+                <li>显示当前正在扫描的目录</li>
+                <li>超时 30 秒显示错误提示</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 3. 空态 -->
+    <h2 id="state-empty">3. 空态 <span class="state-badge empty">无数据</span></h2>
+    <div class="state-section">
+        <div class="state-title">
+            <span>📭</span>
+            没有配置任何来源目录
+        </div>
+        <div class="description">
+            用户首次使用，未添加任何 skill 来源目录时显示。
+        </div>
+        <div class="mockup">
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">暂无 skill 来源</div>
+                <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px;">
+                    添加 skill 来源目录，统一管理你的所有 skill
+                </div>
+                <button style="background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">+ 添加来源目录</button>
+            </div>
+        </div>
+        <div class="description" style="margin-top: 12px;">
+            <strong>引导文案：</strong> "添加 skill 来源目录，统一管理你的所有 skill"
+        </div>
+    </div>
+
+    <!-- 4. 筛选无结果 -->
+    <h2 id="state-filter">4. 筛选无结果 <span class="state-badge empty">无匹配</span></h2>
+    <div class="state-section">
+        <div class="state-title">
+            <span>🔍</span>
+            搜索或筛选无匹配结果
+        </div>
+        <div class="description">
+            用户搜索关键词或选择筛选条件后，没有匹配的 skill。
+        </div>
+        <div class="mockup">
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">没有找到匹配的 skill</div>
+                <div style="color: var(--text-secondary); font-size: 13px;">
+                    试试其他关键词，或清除筛选条件
+                </div>
+            </div>
+        </div>
+        <div class="description" style="margin-top: 12px;">
+            <strong>交互：</strong> 显示"清除筛选"按钮
+        </div>
+    </div>
+
+    <!-- 5. 错误态 -->
+    <h2 id="state-error">5. 错误态 <span class="state-badge error">加载失败</span></h2>
+    <div class="state-section">
+        <div class="state-title">
+            <span>❌</span>
+            目录不存在或无权限
+        </div>
+        <div class="description">
+            配置的来源目录不存在、已被删除、或无读取权限。
+        </div>
+        <div class="mockup">
+            <div style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: rgba(255, 59, 48, 0.1); border: 1px solid rgba(255, 59, 48, 0.3); border-radius: 6px;">
+                <span style="font-size: 20px;">⚠️</span>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 4px;">目录访问失败</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        /Users/mac/Documents/Claude/skills/superpowers 不存在或无权限
+                    </div>
+                    <div style="margin-top: 12px; display: flex; gap: 8px;">
+                        <button style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">移除此目录</button>
+                        <button style="background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">重新扫描</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. 部分可用 -->
+    <h2 id="state-partial">6. 部分可用 <span class="state-badge warning">部分失败</span></h2>
+    <div class="state-section">
+        <div class="state-title">
+            <span>⚡</span>
+            部分目录扫描成功，部分失败
+        </div>
+        <div class="description">
+            多个来源目录中，部分成功加载，部分失败。
+        </div>
+        <div class="mockup">
+            <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: rgba(255, 149, 0, 0.1); border: 1px solid rgba(255, 149, 0, 0.3); border-radius: 6px; margin-bottom: 12px;">
+                <span>⚡</span>
+                <div style="font-size: 12px;">
+                    部分目录加载失败，28 个 skill 已加载
+                </div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-secondary);">
+                ✓ ~/.claude/skills (15)<br>
+                ✓ /Users/.../common (7)<br>
+                ✗ /Users/.../superpowers (无法访问)
+            </div>
+        </div>
+        <div class="description" style="margin-top: 12px;">
+            <strong>规则：</strong> 失败的目录显示红色标记，但仍展示已成功的部分
+        </div>
+    </div>
+
+    <!-- 7. Toast 反馈 -->
+    <h2 id="toast">7. Toast 反馈汇总</h2>
+    <div class="state-section">
+        <div class="description" style="margin-bottom: 16px;">
+            <strong>Toast 规则：</strong>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>操作</th>
+                    <th>类型</th>
+                    <th>文案</th>
+                    <th>时长</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>添加来源目录成功</td>
+                    <td><span class="tag active">success</span></td>
+                    <td>"已添加 ×× 目录，找到 × 个 skill"</td>
+                    <td>2秒</td>
+                </tr>
+                <tr>
+                    <td>移除来源目录</td>
+                    <td><span class="tag">info</span></td>
+                    <td>"已移除 ×× 目录"</td>
+                    <td>2秒</td>
+                </tr>
+                <tr>
+                    <td>启用 skill 到应用</td>
+                    <td><span class="tag active">success</span></td>
+                    <td>"brainstorming 已添加到 Claude Code"</td>
+                    <td>2秒</td>
+                </tr>
+                <tr>
+                    <td>禁用 skill</td>
+                    <td><span class="tag">info</span></td>
+                    <td>"brainstorming 已从 Claude Code 移除"</td>
+                    <td>2秒</td>
+                </tr>
+                <tr>
+                    <td>保存项目配置</td>
+                    <td><span class="tag active">success</span></td>
+                    <td>"SkillDock 配置已保存"</td>
+                    <td>2秒</td>
+                </tr>
+                <tr>
+                    <td>扫描目录失败</td>
+                    <td><span class="tag" style="background: rgba(255, 59, 48, 0.2); color: var(--error);">error</span></td>
+                    <td>"无法访问 ×× 目录，请检查路径或权限"</td>
+                    <td>5秒</td>
+                </tr>
+                <tr>
+                    <td>复制配置到项目</td>
+                    <td><span class="tag active">success</span></td>
+                    <td>"配置已复制到 demo 项目"</td>
+                    <td>2秒</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Toast 展示规则</h3>
+        <div class="description">
+            <ul style="padding-left: 20px; margin-top: 8px;">
+                <li>位置：右下角，距离底部 20px，距离右侧 20px</li>
+                <li>最大同时显示：3 条</li>
+                <li>超过 3 条时，队列显示</li>
+                <li>成功/信息：2 秒后自动消失</li>
+                <li>错误：5 秒后自动消失</li>
+                <li>点击 × 可手动关闭</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 8. 边界情况 -->
+    <h2 id="boundary">8. 边界情况</h2>
+    <div class="state-section">
+        <h3>8.1 长文本截断</h3>
+        <div class="boundary-item">
+            <div class="boundary-example">
+                <div style="font-weight: 600; margin-bottom: 8px;">Skill 名称截断</div>
+                <div class="ellipsis" style="font-size: 14px; font-weight: 600; max-width: 200px;">
+                    this-is-a-very-long-skill-name-that-should-be-truncated
+                </div>
+                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px;">max-width: 200px, text-overflow: ellipsis</div>
+            </div>
+            <div class="boundary-example">
+                <div style="font-weight: 600; margin-bottom: 8px;">描述文本截断</div>
+                <div class="ellipsis" style="font-size: 12px; color: var(--text-secondary); max-width: 300px; height: 36px; line-height: 1.4;">
+                    这是一个很长很长的 skill 描述文本，当它超过两行时应该显示省略号而不是完全展示出来，这样会影响界面布局。
+                </div>
+                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px;">2 行后省略，line-clamp: 2</div>
+            </div>
+        </div>
+
+        <h3>8.2 大量数据滚动</h3>
+        <div class="mockup">
+            <div style="color: var(--text-secondary);">
+                └─ 超过 100 个 skill 时使用虚拟滚动<br>
+                └─ 保持滚动流畅，不渲染不可见区域<br>
+                └─ 侧边栏固定定位
+            </div>
+        </div>
+
+        <h3>8.3 目录路径过长</h3>
+        <div class="mockup">
+            <div style="font-size: 11px; color: var(--text-secondary); word-break: break-all;">
+                /Users/mac/Documents/Claude/skills/superpowers/very-deep-nested-category/subcategory/...
+            </div>
+            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 8px;">
+                解决方案：路径使用 ~ 缩写，hover 显示完整路径
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. 交互行为规则表 -->
+    <h2 id="interaction">9. 交互行为规则表</h2>
+    <div class="state-section">
+        <table>
+            <thead>
+                <tr>
+                    <th>触发</th>
+                    <th>用户操作</th>
+                    <th>系统行为</th>
+                    <th>反馈</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>用户</td>
+                    <td>点击"添加来源"</td>
+                    <td>打开目录选择器对话框</td>
+                    <td>Toast: "已添加 ×× 目录"</td>
+                </tr>
+                <tr>
+                    <td>用户</td>
+                    <td>点击 skill 开关</td>
+                    <td>切换启用状态，保存到配置文件</td>
+                    <td>Toast: "已添加/移除"</td>
+                </tr>
+                <tr>
+                    <td>用户</td>
+                    <td>点击侧边栏分类</td>
+                    <td>切换右侧列表显示内容</td>
+                    <td>无</td>
+                </tr>
+                <tr>
+                    <td>用户</td>
+                    <td>切换顶部应用下拉</td>
+                    <td>加载对应应用的 skill 配置</td>
+                    <td>无</td>
+                </tr>
+                <tr>
+                    <td>用户</td>
+                    <td>输入搜索关键词</td>
+                    <td>实时过滤 skill 列表</td>
+                    <td>无结果时显示空态</td>
+                </tr>
+                <tr>
+                    <td>用户</td>
+                    <td>点击 skill [详情]</td>
+                    <td>打开 skill 详情弹窗</td>
+                    <td>弹窗展示 SKILL.md 内容</td>
+                </tr>
+                <tr>
+                    <td>用户</td>
+                    <td>点击 [保存配置]</td>
+                    <td>保存当前配置到配置文件</td>
+                    <td>Toast: "配置已保存"</td>
+                </tr>
+                <tr>
+                    <td>系统</td>
+                    <td>启动时检测当前目录</td>
+                    <td>自动加载对应项目配置</td>
+                    <td>无</td>
+                </tr>
+                <tr>
+                    <td>系统</td>
+                    <td>扫描目录失败</td>
+                    <td>记录失败目录，继续扫描其他</td>
+                    <td>Toast: "部分目录加载失败"</td>
+                </tr>
+                <tr>
+                    <td>异常</td>
+                    <td>配置文件损坏</td>
+                    <td>提示用户重置或手动修复</td>
+                    <td>Toast: "配置文件异常"</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid var(--border); margin: 40px 0;">
+    <p style="color: var(--text-secondary); font-size: 12px; text-align: center;">
+        SkillDock v1.0 全状态设计参考 | 结束
+    </p>
+
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>
