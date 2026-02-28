@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SkillsManagerApp: App {
+struct SkillDockApp: App {
     @StateObject private var viewModel = MainViewModel()
 
     var body: some Scene {

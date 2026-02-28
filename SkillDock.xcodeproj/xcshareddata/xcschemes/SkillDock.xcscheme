@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0B9641116DC5DB74BA44F450"
-               BuildableName = "SkillsManager.app"
-               BlueprintName = "SkillsManager"
-               ReferencedContainer = "container:SkillsManager.xcodeproj">
+               BlueprintIdentifier = "FB73C43247F598B373E24ABE"
+               BuildableName = "SkillDock.app"
+               BlueprintName = "SkillDock"
+               ReferencedContainer = "container:SkillDock.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0B9641116DC5DB74BA44F450"
-            BuildableName = "SkillsManager.app"
-            BlueprintName = "SkillsManager"
-            ReferencedContainer = "container:SkillsManager.xcodeproj">
+            BlueprintIdentifier = "FB73C43247F598B373E24ABE"
+            BuildableName = "SkillDock.app"
+            BlueprintName = "SkillDock"
+            ReferencedContainer = "container:SkillDock.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -44,10 +44,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8AE64A2B7A9ACF56D50FCCDD"
-               BuildableName = "SkillsManagerTests.xctest"
-               BlueprintName = "SkillsManagerTests"
-               ReferencedContainer = "container:SkillsManager.xcodeproj">
+               BlueprintIdentifier = "0DE2C575CCE5264DE826DF21"
+               BuildableName = "SkillDockTests.xctest"
+               BlueprintName = "SkillDockTests"
+               ReferencedContainer = "container:SkillDock.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -68,10 +68,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0B9641116DC5DB74BA44F450"
-            BuildableName = "SkillsManager.app"
-            BlueprintName = "SkillsManager"
-            ReferencedContainer = "container:SkillsManager.xcodeproj">
+            BlueprintIdentifier = "FB73C43247F598B373E24ABE"
+            BuildableName = "SkillDock.app"
+            BlueprintName = "SkillDock"
+            ReferencedContainer = "container:SkillDock.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -87,10 +87,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0B9641116DC5DB74BA44F450"
-            BuildableName = "SkillsManager.app"
-            BlueprintName = "SkillsManager"
-            ReferencedContainer = "container:SkillsManager.xcodeproj">
+            BlueprintIdentifier = "FB73C43247F598B373E24ABE"
+            BuildableName = "SkillDock.app"
+            BlueprintName = "SkillDock"
+            ReferencedContainer = "container:SkillDock.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

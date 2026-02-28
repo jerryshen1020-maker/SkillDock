@@ -99,11 +99,12 @@ SkillDock/
 ├── Models/        # 数据模型（已实现）
 ├── ViewModels/    # MainViewModel（骨架）
 ├── Views/         # SwiftUI 视图（待实现）
-├── Services/      # 扫描、解析、配置服务（待实现）
+├── Services/      # 扫描、解析、配置服务（部分实现）
 └── Utils/         # Constants.swift
 
 SkillDockTests/
-└── Models/        # AppConfigTests.swift
+├── Models/        # AppConfigTests.swift
+└── Services/      # SkillMetadataParserTests.swift, SkillScannerTests.swift
 ```
 
 ## 开发流程
