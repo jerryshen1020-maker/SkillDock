@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillDock v1.2 设计稿</title>
+    <style>
+        :root {
+            --bg-primary: #fafbfc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f5;
+            --bg-hover: #e9ecef;
+
+            --text-primary: #212529;
+            --text-secondary: #868e96;
+            --text-tertiary: #adb5bd;
+
+            --accent: #4c6ef5;
+            --accent-hover: #364fc7;
+            --accent-light: #e7f5ff;
+
+            --border: #dee2e6;
+            --border-light: #f1f3f5;
+
+            --success: #40c057;
+            --warning: #fab005;
+            --error: #fa5252;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== 顶部标题栏 ===== */
+        .titlebar {
+            height: 52px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-xl);
+            flex-shrink: 0;
+        }
+
+        .titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .logo {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent) 0%, #7950f2 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .titlebar-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .search-box {
+            position: relative;
+            width: 280px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            padding: 8px 12px 8px 36px;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-box input:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 14px;
+        }
+
+        .btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        /* ===== 主布局 ===== */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ===== 侧边栏 ===== */
+        .sidebar {
+            width: 200px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: var(--space-lg) var(--space-sm);
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .sidebar-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: var(--space-xs) var(--space-md);
+            margin-bottom: var(--space-xs);
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 10px var(--space-md);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .sidebar-item .icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item .app-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .app-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .app-icon svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .app-icon.claude { background: #4c6ef5; }
+        .app-icon.codex { background: #228be6; }
+        .app-icon.opencode { background: #12b886; }
+        .app-icon.trae { background: #fab005; }
+        .app-icon.trae-cn { background: #fa5252; }
+
+        .sidebar-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: var(--space-md) 0;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+        }
+
+        /* ===== 内容区 ===== */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .content-header {
+            padding: var(--space-lg) var(--space-xl);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-lg);
+            flex-shrink: 0;
+        }
+
+        .content-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .content-title .count {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+        }
+
+        /* ===== 技能列表 ===== */
+        .skill-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-xl);
+        }
+
+        .skill-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--space-lg);
+        }
+
+        .skill-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .skill-card:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .skill-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: var(--space-sm);
+            gap: var(--space-sm);
+        }
+
+        .skill-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            min-width: 0;
+            flex: 1;
+        }
+
+        .skill-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-light);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .skill-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .skill-path {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        .btn-delete {
+            background: transparent;
+            color: var(--text-tertiary);
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+        }
+
+        .btn-delete:hover {
+            background: #ffe3e3;
+            color: var(--error);
+        }
+
+        .skill-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: var(--space-md);
+        }
+
+        /* ===== 滚动条 ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        /* ===== 来源管理页面 ===== */
+        .page-content {
+            padding: var(--space-xl);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .source-list {
+            margin-bottom: var(--space-xl);
+        }
+
+        .source-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-md);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .source-item .icon {
+            font-size: 16px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .source-item .path {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .source-item .btn-delete {
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .source-item:hover .btn-delete {
+            opacity: 1;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: var(--space-xl) 0;
+        }
+
+        /* ===== 设置页面 ===== */
+        .settings-content {
+            max-width: 400px;
+        }
+
+        .settings-version {
+            text-align: center;
+            padding: var(--space-xl) 0;
+            font-size: 16px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .settings-group {
+            margin-bottom: var(--space-xl);
+        }
+
+        .settings-group-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .settings-option {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) 0;
+        }
+
+        .settings-option input[type="radio"] {
+            accent-color: var(--accent);
+        }
+
+        .settings-option label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        /* ===== 弹窗样式 ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            width: 480px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: var(--space-lg);
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+        }
+
+        .form-input-group {
+            display: flex;
+            gap: var(--space-sm);
+        }
+
+        .form-input-group .form-input {
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: var(--space-lg);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-sm);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部标题栏 -->
+    <div class="titlebar">
+        <div class="titlebar-left">
+            <div class="logo">S</div>
+            <span class="title">SkillDock</span>
+        </div>
+        <div class="titlebar-right">
+            <div class="search-box" id="searchBox">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="搜索 skills...">
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-item active" data-page="skills">
+                    <span class="app-icon claude">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <circle cx="12" cy="12" r="9"/>
+                            <circle cx="9" cy="10" r="1.5" fill="white" stroke="none"/>
+                            <circle cx="15" cy="10" r="1.5" fill="white" stroke="none"/>
+                            <path d="M9 14c0 1.5 1.5 3 3 3s3-1.5 3-3" stroke-width="1.5"/>
+                        </svg>
+                    </span>
+                    <span>Claude</span>
+                </div>
+                <div class="sidebar-item" data-page="skills">
+                    <span class="app-icon codex">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+                        </svg>
+                    </span>
+                    <span>Codex</span>
+                </div>
+                <div class="sidebar-item" data-page="skills">
+                    <span class="app-icon opencode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </span>
+                    <span>OpenCode</span>
+                </div>
+                <div class="sidebar-item" data-page="skills">
+                    <span class="app-icon trae">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7l3-7z"/>
+                        </svg>
+                    </span>
+                    <span>Trae</span>
+                </div>
+                <div class="sidebar-item" data-page="skills">
+                    <span class="app-icon trae-cn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7l3-7z"/>
+                            <text x="12" y="15" font-size="6" fill="white" text-anchor="middle">CN</text>
+                        </svg>
+                    </span>
+                    <span>Trae CN</span>
+                </div>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <div class="sidebar-bottom">
+                <div class="sidebar-item" id="btnSource" data-page="source">
+                    <span class="icon">🗂️</span>
+                    <span>来源</span>
+                </div>
+                <div class="sidebar-item" id="btnSettings" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span>设置</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="content" id="contentArea">
+            <!-- Skills 页面 -->
+            <div id="pageSkills" class="page-skills">
+                <div class="content-header">
+                    <h2 class="content-title">
+                        <span>Claude - Skills</span>
+                        <span class="count">共 12 个</span>
+                    </h2>
+                    <button class="btn btn-primary">
+                        <span>↻</span> 一键同步
+                    </button>
+                </div>
+                <div class="skill-list">
+                    <div class="skill-grid">
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">🧠</div>
+                                    <div>
+                                        <div class="skill-name">brainstorming</div>
+                                        <div class="skill-path">来源: ~/.claude/skills</div>
+                                    </div>
+                                </div>
+                                <button class="btn-delete">删除</button>
+                            </div>
+                            <div class="skill-desc">帮助把想法变成完整的设计和规格，通过结构化对话梳理需求</div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">🎨</div>
+                                    <div>
+                                        <div class="skill-name">design-exploration</div>
+                                        <div class="skill-path">来源: ~/.claude/skills</div>
+                                    </div>
+                                </div>
+                                <button class="btn-delete">删除</button>
+                            </div>
+                            <div class="skill-desc">新功能设计探索流程，从模糊想法产出可交付的设计参考文档</div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">📄</div>
+                                    <div>
+                                        <div class="skill-name">prd-doc-writer</div>
+                                        <div class="skill-path">来源: ~/Documents/MySkills</div>
+                                    </div>
+                                </div>
+                                <button class="btn-delete">删除</button>
+                            </div>
+                            <div class="skill-desc">编写和迭代 PRD/需求文档，用故事驱动的结构化方式</div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">✏️</div>
+                                    <div>
+                                        <div class="skill-name">writing-assistant</div>
+                                        <div class="skill-path">来源: GitHub</div>
+                                    </div>
+                                </div>
+                                <button class="btn-delete">删除</button>
+                            </div>
+                            <div class="skill-desc">写作助手，帮助用户梳理选题、组织思路、形成框架</div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">🖼️</div>
+                                    <div>
+                                        <div class="skill-name">image-assistant</div>
+                                        <div class="skill-path">来源: GitHub</div>
+                                    </div>
+                                </div>
+                                <button class="btn-delete">删除</button>
+                            </div>
+                            <div class="skill-desc">配图助手，把文章内容转成统一风格的信息图提示词</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 来源管理页面 -->
+            <div id="pageSource" class="page-content" style="display: none;">
+                <div class="content-header">
+                    <h2 class="content-title">来源管理</h2>
+                </div>
+                <div class="page-content">
+                    <div class="source-list">
+                        <div class="section-title">
+                            <span>本地目录</span>
+                            <button class="btn" id="btnAddDir">+ 添加目录</button>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📁</span>
+                            <span class="path">~/.claude/skills</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📁</span>
+                            <span class="path">~/Documents/MySkills</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="source-list">
+                        <div class="section-title">
+                            <span>Git 仓库</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn" id="btnUpdateGit">↻ 一键更新</button>
+                                <button class="btn" id="btnAddGit">+ 添加仓库</button>
+                            </div>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📦</span>
+                            <span class="path">farion1231/browser-use</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📦</span>
+                            <span class="path">qufei1993/skills-hub</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设置页面 -->
+            <div id="pageSettings" class="page-content" style="display: none;">
+                <div class="content-header">
+                    <h2 class="content-title">设置</h2>
+                </div>
+                <div class="page-content settings-content">
+                    <div class="settings-version">SkillDock v1.2.0</div>
+
+                    <div class="divider"></div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">应用主题</div>
+                        <div class="settings-option">
+                            <input type="radio" name="theme" id="theme-system" checked>
+                            <label for="theme-system">跟随系统</label>
+                        </div>
+                        <div class="settings-option">
+                            <input type="radio" name="theme" id="theme-light">
+                            <label for="theme-light">浅色</label>
+                        </div>
+                        <div class="settings-option">
+                            <input type="radio" name="theme" id="theme-dark">
+                            <label for="theme-dark">深色</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加本地目录弹窗 -->
+    <div class="modal-overlay hidden" id="modalAddDir">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">添加本地目录</span>
+                <button class="modal-close" onclick="closeModal('modalAddDir')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">请选择要添加的目录</label>
+                    <div class="form-input-group">
+                        <input type="text" class="form-input" placeholder="~/Documents/MySkills" readonly>
+                        <button class="btn">选择目录</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modalAddDir')">取消</button>
+                <button class="btn btn-primary">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加 Git 仓库弹窗 -->
+    <div class="modal-overlay hidden" id="modalAddGit">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">添加 Git 仓库</span>
+                <button class="modal-close" onclick="closeModal('modalAddGit')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">仓库地址</label>
+                    <input type="text" class="form-input" placeholder="https://github.com/username/repo-name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">分支 (可选)</label>
+                    <input type="text" class="form-input" placeholder="main">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modalAddGit')">取消</button>
+                <button class="btn btn-primary">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面切换
+        const pages = {
+            skills: document.getElementById('pageSkills'),
+            source: document.getElementById('pageSource'),
+            settings: document.getElementById('pageSettings')
+        };
+
+        const searchBox = document.getElementById('searchBox');
+
+        // 侧边栏点击
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const page = this.dataset.page;
+
+                // 更新侧边栏选中状态
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+
+                // 切换页面
+                Object.values(pages).forEach(p => p.style.display = 'none');
+                pages[page].style.display = 'block';
+
+                // 搜索框显示/隐藏
+                searchBox.style.display = page === 'skills' ? 'block' : 'none';
+            });
+        });
+
+        // 默认显示 skills 页面
+        pages.source.style.display = 'none';
+        pages.settings.style.display = 'none';
+        searchBox.style.display = 'block';
+
+        // 弹窗控制
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        // 添加目录按钮
+        document.getElementById('btnAddDir')?.addEventListener('click', function() {
+            openModal('modalAddDir');
+        });
+
+        // 添加仓库按钮
+        document.getElementById('btnAddGit')?.addEventListener('click', function() {
+            openModal('modalAddGit');
+        });
+
+        // 一键更新按钮
+        document.getElementById('btnUpdateGit')?.addEventListener('click', function() {
+            this.innerHTML = '<span>↻</span> 更新中...';
+            this.disabled = true;
+            setTimeout(() => {
+                this.innerHTML = '<span>↻</span> 一键更新';
+                this.disabled = false;
+            }, 2000);
+        });
+
+        // 点击遮罩关闭弹窗
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

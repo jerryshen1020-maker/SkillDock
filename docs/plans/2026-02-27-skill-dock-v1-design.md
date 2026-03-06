@@ -1,5 +1,7 @@
 # SkillDock V1.0 设计文档
 
+> 归档说明（2026-03-05）：该设计文档为 v1.0 历史方案，包含已下线“项目管理/项目级配置”链路，仅用于历史追溯，不作为当前实现依据。
+
 日期：2026-02-27  
 状态：已确认，可进入实现
 
@@ -44,11 +46,10 @@
 
 - ProjectSkillConfig (`.skills-config.json`)
   - `version`
-  - `appTargets`（Claude/Codex/Trae/Trae CN）
   - `skills`（`skillID -> enabled`）
 
 - AppConfig（UserDefaults）
-  - `sources`、`projects`、`selectedProjectID`、`selectedAppTarget`
+  - `sources`、`projects`、`selectedProjectID`、`skillStates`
 
 ### 3.2 兼容策略
 
@@ -63,7 +64,7 @@
 1. 加载 AppConfig
 2. 并发扫描来源目录
 3. 构建技能索引
-4. 叠加当前项目与应用维度的启用状态
+4. 叠加全局启用状态
 5. 输出视图模型状态
 
 ### 4.2 添加来源

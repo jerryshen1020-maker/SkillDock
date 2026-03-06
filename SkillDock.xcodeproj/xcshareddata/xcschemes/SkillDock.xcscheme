@@ -50,6 +50,17 @@
                ReferencedContainer = "container:SkillDock.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DD50600966CB89A95AC24856"
+               BuildableName = "SkillDockUITests.xctest"
+               BlueprintName = "SkillDockUITests"
+               ReferencedContainer = "container:SkillDock.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

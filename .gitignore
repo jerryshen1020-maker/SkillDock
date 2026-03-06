@@ -1,0 +1,12 @@
+# /Users/mac/Documents/CodingPlace/SkillsManager/.gitignore
+.DS_Store
+.swiftpm/
+.build/
+DerivedData/
+dist/
+tests-artifacts/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+SkillDock.xcodeproj/project.xcworkspace/xcuserdata/
+**/*.xcuserdatad/

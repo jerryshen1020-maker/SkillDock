@@ -17,12 +17,14 @@ targets:
     settings:
       base:
         PRODUCT_NAME: SkillDock
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: SkillDock
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
     scheme:
       testTargets:
         - SkillDockTests
+        - SkillDockUITests
   SkillDockTests:
     type: bundle.unit-test
     platform: macOS
@@ -33,5 +35,16 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/SkillDock.app/Contents/MacOS/SkillDock
         BUNDLE_LOADER: $(TEST_HOST)
+    dependencies:
+      - target: SkillDock
+  SkillDockUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: SkillDockUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: SkillDock
     dependencies:
       - target: SkillDock

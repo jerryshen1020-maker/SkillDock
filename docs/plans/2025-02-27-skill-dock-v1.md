@@ -120,11 +120,13 @@ struct Project: Identifiable, Codable {
 #### 应用配置（UserDefaults 存储）
 
 ```swift
-// UserDefaults keys
-enum ConfigKey {
-    static let sources = "skillsmanager.sources"
-    static let projects = "skillsmanager.projects"
-    static let globalSkills = "skillsmanager.globalSkills"
+// 单 Key 持久化 AppConfig
+// key: "skilldock.appConfig"
+struct AppConfig: Codable {
+    var sources: [Source]
+    var projects: [Project]
+    var selectedProjectID: UUID?
+    var skillStates: [String: Bool]
 }
 ```
 
@@ -223,16 +225,12 @@ class SkillScanner {
 
 ```swift
 // Services/ConfigManager.swift
-class ConfigManager: ObservableObject {
-    @Published var sources: [Source]
-    @Published var projects: [Project]
-    @Published var globalSkills: [String: Bool]
+class ConfigManager {
+    /// 加载 AppConfig
+    func loadAppConfig() -> AppConfig
 
-    /// 保存配置到 UserDefaults
-    func save()
-
-    /// 加载配置
-    func load()
+    /// 保存 AppConfig 到 UserDefaults
+    func saveAppConfig(_ config: AppConfig)
 
     /// 读取项目配置文件
     func loadProjectConfig(at path: String) -> ProjectConfig

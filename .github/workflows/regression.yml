@@ -1,0 +1,73 @@
+name: v1.3 Regression Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  regression:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install visual deps
+        run: python3 -m pip install --upgrade pip pillow
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build Gate
+        run: xcodebuild -project SkillDock.xcodeproj -scheme SkillDock build
+
+      - name: Unit + Integration Gate
+        run: xcodebuild test -project SkillDock.xcodeproj -scheme SkillDock -only-testing:SkillDockTests
+
+      - name: UI Journey Gate
+        run: |
+          mkdir -p tests-artifacts/xcresult
+          rm -rf tests-artifacts/xcresult/ui-journey.xcresult
+          xcodebuild test \
+            -project SkillDock.xcodeproj \
+            -scheme SkillDock \
+            -resultBundlePath tests-artifacts/xcresult/ui-journey.xcresult \
+            -only-testing:SkillDockUITests/AppSwitchJourneyUITests \
+            -only-testing:SkillDockUITests/EmptyLoadingErrorUITests
+
+      - name: Visual Gate
+        run: python3 tools/visual-regression/run_visual_gate.py
+
+      - name: Coverage Mapping Gate
+        run: python3 tools/testing/validate_prd_mapping.py
+
+      - name: Upload Visual Diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff
+          path: tests-artifacts/diff
+
+      - name: Upload Snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-snapshots
+          path: tests-artifacts/snapshots
+
+      - name: Upload Xcode Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresult-bundles
+          path: tests-artifacts/xcresult

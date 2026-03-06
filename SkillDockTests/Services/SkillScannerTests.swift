@@ -21,6 +21,32 @@ final class SkillScannerTests: XCTestCase {
         XCTAssertEqual(skills.first(where: { $0.folderName == "writing-assistant" })?.description, "暂无描述")
     }
 
+    func testScanDirectoryRecursivelyFindsNestedSkillFolders() throws {
+        let tempRoot = try makeTempDirectory()
+        defer { try? FileManager.default.removeItem(at: tempRoot) }
+
+        let nestedFolder = tempRoot
+            .appendingPathComponent("categories", isDirectory: true)
+            .appendingPathComponent("brainstorming", isDirectory: true)
+        try FileManager.default.createDirectory(at: nestedFolder, withIntermediateDirectories: true)
+        try """
+        ---
+        name: brainstorming
+        description: nested skill
+        ---
+        """.write(
+            to: nestedFolder.appendingPathComponent("SKILL.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let scanner = SkillScanner()
+        let skills = try scanner.scanDirectory(tempRoot.path, sourceID: UUID())
+
+        XCTAssertEqual(skills.count, 1)
+        XCTAssertEqual(skills.first?.folderName, "categories/brainstorming")
+    }
+
     private func makeTempDirectory() throws -> URL {
         let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let target = base.appendingPathComponent(UUID().uuidString, isDirectory: true)

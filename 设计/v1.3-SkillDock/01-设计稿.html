@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillDock v1.3 设计稿</title>
+    <style>
+        :root {
+            --bg-primary: #fafbfc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f5;
+            --bg-hover: #e9ecef;
+
+            --text-primary: #212529;
+            --text-secondary: #868e96;
+            --text-tertiary: #adb5bd;
+
+            --accent: #4c6ef5;
+            --accent-hover: #364fc7;
+            --accent-light: #e7f5ff;
+
+            --border: #dee2e6;
+            --border-light: #f1f3f5;
+
+            --success: #40c057;
+            --warning: #fab005;
+            --error: #fa5252;
+            --error-light: #fff5f5;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== 顶部标题栏 ===== */
+        .titlebar {
+            height: 52px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-xl);
+            flex-shrink: 0;
+        }
+
+        .titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .logo {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent) 0%, #7950f2 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .titlebar-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .search-box {
+            position: relative;
+            width: 280px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            padding: 8px 12px 8px 36px;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-box input:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 14px;
+        }
+
+        /* ===== 按钮样式 ===== */
+        .btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-danger {
+            background: var(--error-light);
+            color: var(--error);
+        }
+
+        .btn-danger:hover {
+            background: #ffe3e3;
+        }
+
+        .btn-warning {
+            background: #fff9db;
+            color: #f08c00;
+        }
+
+        .btn-warning:hover {
+            background: #ffe066;
+        }
+
+        /* ===== 主布局 ===== */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ===== 侧边栏 ===== */
+        .sidebar {
+            width: 200px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: var(--space-lg) var(--space-sm);
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .sidebar-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: var(--space-xs) var(--space-md);
+            margin-bottom: var(--space-xs);
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 10px var(--space-md);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* 点击切换样式 */
+        .sidebar-item.active {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .sidebar-item .icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item .app-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .app-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .app-icon svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .app-icon.claude { background: #4c6ef5; }
+        .app-icon.codex { background: #228be6; }
+        .app-icon.opencode { background: #12b886; }
+        .app-icon.trae { background: #fab005; }
+        .app-icon.trae-cn { background: #fa5252; }
+
+        .sidebar-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: var(--space-md) 0;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+        }
+
+        /* ===== 内容区 ===== */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .content-header {
+            padding: var(--space-lg) var(--space-xl);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-lg);
+            flex-shrink: 0;
+        }
+
+        .content-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .content-title .count {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+        }
+
+        .content-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        /* ===== 技能列表 ===== */
+        .skill-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-xl);
+        }
+
+        .skill-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--space-lg);
+        }
+
+        .skill-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: all 0.2s;
+        }
+
+        .skill-card:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .skill-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: var(--space-sm);
+            gap: var(--space-sm);
+        }
+
+        .skill-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            min-width: 0;
+            flex: 1;
+        }
+
+        .skill-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-light);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .skill-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .skill-path {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        /* 移除按钮 - 方案 A */
+        .btn-remove {
+            background: transparent;
+            color: var(--text-tertiary);
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-remove:hover {
+            background: var(--error-light);
+            color: var(--error);
+        }
+
+        .skill-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: var(--space-md);
+        }
+
+        .skill-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .skill-tag {
+            font-size: 11px;
+            padding: 3px 8px;
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
+            border-radius: var(--radius-sm);
+        }
+
+        /* ===== 空状态 ===== */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-xl);
+        }
+
+        .empty-state-content {
+            text-align: center;
+            max-width: 320px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-lg);
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .empty-state-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-lg);
+            line-height: 1.5;
+        }
+
+        /* ===== 滚动条 ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        /* ===== 来源管理页面 ===== */
+        .page-content {
+            padding: var(--space-xl);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .source-list {
+            margin-bottom: var(--space-xl);
+        }
+
+        .source-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-md);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .source-item .icon {
+            font-size: 16px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .source-item .path {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .source-item .btn-delete {
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .source-item:hover .btn-delete {
+            opacity: 1;
+        }
+
+        .btn-delete {
+            background: transparent;
+            color: var(--text-tertiary);
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+        }
+
+        .btn-delete:hover {
+            background: var(--error-light);
+            color: var(--error);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: var(--space-xl) 0;
+        }
+
+        /* ===== Git 进度指示 ===== */
+        .git-progress {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            background: var(--accent-light);
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        .git-progress .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--accent);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== 确认弹窗 ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            width: 400px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: var(--space-lg);
+        }
+
+        .modal-body p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .modal-footer {
+            padding: var(--space-lg);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-sm);
+        }
+
+        /* ===== Toast 提示 ===== */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .toast {
+            background: var(--text-primary);
+            color: white;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.2s ease-out;
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部标题栏 -->
+    <div class="titlebar">
+        <div class="titlebar-left">
+            <div class="logo">S</div>
+            <span class="title">SkillDock</span>
+        </div>
+        <div class="titlebar-right">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" placeholder="搜索 skills...">
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-item" data-page="skills" data-app="claude">
+                    <span class="app-icon claude">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <circle cx="12" cy="12" r="9"/>
+                            <circle cx="9" cy="10" r="1.5" fill="white" stroke="none"/>
+                            <circle cx="15" cy="10" r="1.5" fill="white" stroke="none"/>
+                            <path d="M9 14c0 1.5 1.5 3 3 3s3-1.5 3-3" stroke-width="1.5"/>
+                        </svg>
+                    </span>
+                    <span>Claude Code</span>
+                </div>
+                <div class="sidebar-item" data-page="skills" data-app="codex">
+                    <span class="app-icon codex">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+                        </svg>
+                    </span>
+                    <span>Codex</span>
+                </div>
+                <div class="sidebar-item" data-page="skills" data-app="opencode">
+                    <span class="app-icon opencode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </span>
+                    <span>OpenCode</span>
+                </div>
+                <div class="sidebar-item" data-page="skills" data-app="trae">
+                    <span class="app-icon trae">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7l3-7z"/>
+                        </svg>
+                    </span>
+                    <span>Trae</span>
+                </div>
+                <div class="sidebar-item" data-page="skills" data-app="trae-cn">
+                    <span class="app-icon trae-cn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7l3-7z"/>
+                        </svg>
+                    </span>
+                    <span>Trae CN</span>
+                </div>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <div class="sidebar-bottom">
+                <div class="sidebar-item" id="btnSource" data-page="source">
+                    <span class="icon">🗂️</span>
+                    <span>来源管理</span>
+                </div>
+                <div class="sidebar-item" id="btnSettings" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span>设置</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="content" id="contentArea">
+            <!-- Skills 页面 - 正常态 -->
+            <div id="pageSkills" class="page-skills">
+                <div class="content-header">
+                    <h2 class="content-title">
+                        <span>Claude Code - Skills</span>
+                        <span class="count">共 5 个</span>
+                    </h2>
+                    <div class="content-actions">
+                        <!-- 需求：清空全部 - 方案 C -->
+                        <button class="btn btn-warning" id="btnClearAll">
+                            <span>🗑️</span> 清空全部
+                        </button>
+                        <!-- 一键同步 -->
+                        <button class="btn btn-primary" id="btnSync">
+                            <span>↻</span> 一键同步
+                        </button>
+                    </div>
+                </div>
+                <div class="skill-list">
+                    <div class="skill-grid">
+                        <!-- 技能卡片 - 方案 A：移除按钮 -->
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">🧠</div>
+                                    <div>
+                                        <div class="skill-name">brainstorming</div>
+                                        <div class="skill-path">来源: ~/.claude/skills</div>
+                                    </div>
+                                </div>
+                                <button class="btn-remove">移除</button>
+                            </div>
+                            <div class="skill-desc">帮助把想法变成完整的设计和规格，通过结构化对话梳理需求</div>
+                            <div class="skill-footer">
+                                <span class="skill-tag">Claude Code</span>
+                            </div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">🎨</div>
+                                    <div>
+                                        <div class="skill-name">design-exploration</div>
+                                        <div class="skill-path">来源: ~/Documents/MySkills</div>
+                                    </div>
+                                </div>
+                                <button class="btn-remove">移除</button>
+                            </div>
+                            <div class="skill-desc">新功能设计探索流程，从模糊想法产出可交付的设计参考文档</div>
+                            <div class="skill-footer">
+                                <span class="skill-tag">Claude Code</span>
+                            </div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">📄</div>
+                                    <div>
+                                        <div class="skill-name">prd-doc-writer</div>
+                                        <div class="skill-path">来源: GitHub</div>
+                                    </div>
+                                </div>
+                                <button class="btn-remove">移除</button>
+                            </div>
+                            <div class="skill-desc">编写和迭代 PRD/需求文档，用故事驱动的结构化方式</div>
+                            <div class="skill-footer">
+                                <span class="skill-tag">Claude Code</span>
+                            </div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">✏️</div>
+                                    <div>
+                                        <div class="skill-name">writing-assistant</div>
+                                        <div class="skill-path">来源: GitHub</div>
+                                    </div>
+                                </div>
+                                <button class="btn-remove">移除</button>
+                            </div>
+                            <div class="skill-desc">写作助手，帮助用户梳理选题、组织思路、形成框架</div>
+                            <div class="skill-footer">
+                                <span class="skill-tag">Claude Code</span>
+                            </div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-card-header">
+                                <div class="skill-info">
+                                    <div class="skill-icon">🖼️</div>
+                                    <div>
+                                        <div class="skill-name">image-assistant</div>
+                                        <div class="skill-path">来源: GitHub</div>
+                                    </div>
+                                </div>
+                                <button class="btn-remove">移除</button>
+                            </div>
+                            <div class="skill-desc">配图助手，把文章内容转成统一风格的信息图提示词</div>
+                            <div class="skill-footer">
+                                <span class="skill-tag">Claude Code</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 空状态 - 方案 D -->
+            <div id="pageSkillsEmpty" class="page-skills" style="display: none;">
+                <div class="content-header">
+                    <h2 class="content-title">
+                        <span>Claude Code - Skills</span>
+                        <span class="count">共 0 个</span>
+                    </h2>
+                    <div class="content-actions">
+                        <button class="btn btn-warning" id="btnClearAllEmpty" style="display: none;">
+                            <span>🗑️</span> 清空全部
+                        </button>
+                        <button class="btn btn-primary" id="btnSyncEmpty">
+                            <span>↻</span> 一键同步
+                        </button>
+                    </div>
+                </div>
+                <div class="empty-state">
+                    <div class="empty-state-content">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-title">暂无已安装的 Skill</div>
+                        <div class="empty-state-desc">点击「一键同步」从来源目录安装 Skill 到全局</div>
+                        <button class="btn btn-primary" id="btnSyncFromEmpty">
+                            <span>↻</span> 一键同步
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 来源管理页面 -->
+            <div id="pageSource" class="page-content" style="display: none;">
+                <div class="content-header">
+                    <h2 class="content-title">来源管理</h2>
+                </div>
+                <div class="page-content">
+                    <div class="source-list">
+                        <div class="section-title">
+                            <span>本地目录</span>
+                            <button class="btn" id="btnAddDir">+ 添加目录</button>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📁</span>
+                            <span class="path">~/.claude/skills</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📁</span>
+                            <span class="path">~/Documents/MySkills</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="source-list">
+                        <div class="section-title">
+                            <span>Git 仓库</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn" id="btnUpdateGit">↻ 一键更新</button>
+                                <button class="btn" id="btnAddGit">+ 添加仓库</button>
+                            </div>
+                        </div>
+                        <!-- Git 进度指示 - 需求1：移到 Git 仓库模块内 -->
+                        <div class="git-progress" id="gitProgress" style="display: none;">
+                            <div class="spinner"></div>
+                            <span>正在克隆 skills-hub 仓库... 45%</span>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📦</span>
+                            <span class="path">farion1231/browser-use</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                        <div class="source-item">
+                            <span class="icon">📦</span>
+                            <span class="path">qufei1993/skills-hub</span>
+                            <button class="btn-delete">删除</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设置页面 -->
+            <div id="pageSettings" class="page-content" style="display: none;">
+                <div class="content-header">
+                    <h2 class="content-title">设置</h2>
+                </div>
+                <div class="page-content" style="max-width: 400px;">
+                    <div style="text-align: center; padding: 24px 0; font-size: 16px; font-weight: 600;">SkillDock v1.3.0</div>
+                    <div class="divider"></div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px;">应用主题</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer;">
+                                <input type="radio" name="theme" checked> 跟随系统
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer;">
+                                <input type="radio" name="theme"> 浅色
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer;">
+                                <input type="radio" name="theme"> 深色
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认弹窗 -->
+    <div class="modal-overlay hidden" id="modalConfirm">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">确认操作</span>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">确定要执行此操作吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('modalConfirm')">取消</button>
+                <button class="btn btn-danger" id="modalConfirmBtn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // 页面元素
+        const pages = {
+            skills: document.getElementById('pageSkills'),
+            skillsEmpty: document.getElementById('pageSkillsEmpty'),
+            source: document.getElementById('pageSource'),
+            settings: document.getElementById('pageSettings')
+        };
+
+        const searchBox = document.querySelector('.search-box');
+
+        // 模拟状态
+        let currentPage = 'skills';
+        let hasInstalledSkills = true; // 切换空状态用
+        let selectedApp = 'claude';
+
+        // 侧边栏点击 - 需求9：改为 click 切换
+        document.querySelectorAll('.sidebar-item[data-page]').forEach(item => {
+            item.addEventListener('click', function() {
+                // 更新选中状态
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+
+                const page = this.dataset.page;
+
+                // 切换页面
+                Object.values(pages).forEach(p => p.style.display = 'none');
+
+                if (page === 'skills') {
+                    // 根据是否有已安装技能显示不同状态
+                    if (hasInstalledSkills) {
+                        pages.skills.style.display = 'flex';
+                        pages.skills.style.flexDirection = 'column';
+                    } else {
+                        pages.skillsEmpty.style.display = 'flex';
+                        pages.skillsEmpty.style.flexDirection = 'column';
+                    }
+                    searchBox.style.display = 'block';
+                } else if (page === 'source') {
+                    pages.source.style.display = 'block';
+                    searchBox.style.display = 'none';
+                } else if (page === 'settings') {
+                    pages.settings.style.display = 'block';
+                    searchBox.style.display = 'none';
+                }
+
+                currentPage = page;
+            });
+        });
+
+        // 模拟切换空状态（演示用）
+        function toggleEmptyState() {
+            hasInstalledSkills = !hasInstalledSkills;
+            if (currentPage === 'skills') {
+                Object.values(pages).forEach(p => p.style.display = 'none');
+                if (hasInstalledSkills) {
+                    pages.skills.style.display = 'flex';
+                    pages.skills.style.flexDirection = 'column';
+                } else {
+                    pages.skillsEmpty.style.display = 'flex';
+                    pages.skillsEmpty.style.flexDirection = 'column';
+                }
+                searchBox.style.display = 'block';
+            }
+        }
+
+        // 弹窗控制
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        // Toast 提示
+        function showToast(message, type = 'default') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // 清空全部 - 需求4
+        document.getElementById('btnClearAll')?.addEventListener('click', function() {
+            document.getElementById('modalTitle').textContent = '清空全部 Skill';
+            document.getElementById('modalMessage').textContent = `确定要清空 Claude Code 的所有已安装 Skill 吗？\n这将删除 ~/.claude/skills/ 目录下的所有符号链接（包括历史遗留的）。`;
+            document.getElementById('modalConfirmBtn').onclick = function() {
+                closeModal('modalConfirm');
+                showToast('已清空 Claude Code 的所有 Skill', 'success');
+                // 模拟清空后切换到空状态
+                setTimeout(() => {
+                    hasInstalledSkills = false;
+                    Object.values(pages).forEach(p => p.style.display = 'none');
+                    pages.skillsEmpty.style.display = 'flex';
+                    pages.skillsEmpty.style.flexDirection = 'column';
+                }, 500);
+            };
+            openModal('modalConfirm');
+        });
+
+        // 移除单个 Skill - 需求1-1
+        document.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const card = this.closest('.skill-card');
+                const skillName = card.querySelector('.skill-name').textContent;
+
+                document.getElementById('modalTitle').textContent = '移除 Skill';
+                document.getElementById('modalMessage').textContent = `确定要从 Claude Code 移除「${skillName}」吗？`;
+                document.getElementById('modalConfirmBtn').onclick = function() {
+                    closeModal('modalConfirm');
+                    showToast(`已移除 ${skillName}`, 'success');
+                    // 模拟移除
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    setTimeout(() => card.remove(), 200);
+                };
+                openModal('modalConfirm');
+            });
+        });
+
+        // 一键同步
+        document.querySelectorAll('#btnSync, #btnSyncEmpty, #btnSyncFromEmpty').forEach(btn => {
+            btn.addEventListener('click', function() {
+                showToast('正在同步...', 'default');
+                this.disabled = true;
+                this.innerHTML = '<span>↻</span> 同步中...';
+
+                setTimeout(() => {
+                    this.disabled = false;
+                    this.innerHTML = '<span>↻</span> 一键同步';
+                    showToast('同步完成：新增 3 个', 'success');
+                    // 模拟同步后切换到有数据状态
+                    hasInstalledSkills = true;
+                    Object.values(pages).forEach(p => p.style.display = 'none');
+                    pages.skills.style.display = 'flex';
+                    pages.skills.style.flexDirection = 'column';
+                }, 1500);
+            });
+        });
+
+        // Git 进度演示 - 需求1
+        document.getElementById('btnAddGit')?.addEventListener('click', function() {
+            // 模拟添加 Git 仓库后显示进度
+            document.getElementById('gitProgress').style.display = 'flex';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                document.querySelector('#gitProgress span').textContent = `正在克隆 skills-hub 仓库... ${progress}%`;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('gitProgress').style.display = 'none';
+                        showToast('仓库添加成功', 'success');
+                    }, 500);
+                }
+            }, 200);
+        });
+
+        // 点击遮罩关闭弹窗
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                }
+            });
+        });
+
+        // 初始化
+        pages.source.style.display = 'none';
+        pages.settings.style.display = 'none';
+    </script>
+</body>
+</html>
