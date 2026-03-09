@@ -610,20 +610,49 @@ final class MainViewModel: ObservableObject {
         persistAppConfig()
 
         Task {
-            let cloneResult = await gitService.cloneAsync(
-                repoURL: normalizedRepoURL,
-                branch: normalizedBranch?.isEmpty == true ? nil : normalizedBranch,
-                to: targetPath
-            )
+            let maxAttempts = 3
+            var attempt = 0
+            var success = false
+            var lastError: Error?
+            while attempt < maxAttempts {
+                attempt += 1
+                gitProgressMessage = attempt == 1
+                    ? "正在克隆 \(displayName) 仓库..."
+                    : "正在克隆 \(displayName) 仓库...（第\(attempt)次）"
+                let cloneResult = await gitService.cloneAsync(
+                    repoURL: normalizedRepoURL,
+                    branch: normalizedBranch?.isEmpty == true ? nil : normalizedBranch,
+                    to: targetPath
+                )
+                switch cloneResult {
+                case .success:
+                    success = true
+                case .failure(let error):
+                    lastError = error
+                    if attempt < maxAttempts {
+                        let delay = retryDelayNanoseconds(attempt: attempt)
+                        try? await Task.sleep(nanoseconds: delay)
+                    }
+                }
+                if success {
+                    break
+                }
+            }
+
             activeGitSourceIDs.remove(pendingSource.id)
-            switch cloneResult {
-            case .success:
+            if success {
                 replaceSource(pendingSource.withAvailability(isAvailable: true, lastError: nil))
                 persistAppConfig()
                 refreshInstalledSkills()
                 message = "已添加 Git 来源：\(displayName)"
-            case .failure(let error):
-                replaceSource(pendingSource.withAvailability(isAvailable: false, lastError: error.localizedDescription))
+            } else {
+                let errorMessage = lastError?.localizedDescription ?? "未知错误"
+                replaceSource(
+                    pendingSource.withAvailability(
+                        isAvailable: false,
+                        lastError: "重试 \(maxAttempts) 次失败：\(errorMessage)"
+                    )
+                )
                 persistAppConfig()
                 message = "哎呀，Git 仓库拉取失败：\(displayName)"
             }
@@ -834,6 +863,12 @@ final class MainViewModel: ObservableObject {
             candidate = "\(root)/\(fallback)-\(suffix)"
         }
         return candidate
+    }
+
+    private func retryDelayNanoseconds(attempt: Int) -> UInt64 {
+        let baseDelay = 0.6
+        let delaySeconds = baseDelay * pow(2.0, Double(max(0, attempt - 1)))
+        return UInt64(delaySeconds * 1_000_000_000)
     }
 
     private func ensureDefaultSource() {
