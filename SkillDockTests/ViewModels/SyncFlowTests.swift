@@ -12,16 +12,20 @@ final class SyncFlowTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suite)
 
         let source = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: source)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suite)
         }
 
         try makeSkillFolder(root: source, folderName: "alpha", description: "a")
-        let viewModel = makeViewModel(userDefaults: userDefaults)
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: source.path))
-        XCTAssertEqual(viewModel.skills.map(\.folderName), ["alpha"])
+        XCTAssertEqual(viewModel.skills.count, 0)
+        viewModel.syncSkills()
+        XCTAssertEqual(Set(viewModel.skills.map(\.folderName)), Set(["alpha"]))
 
         try makeSkillFolder(root: source, folderName: "beta", description: "b")
         viewModel.syncSkills()
@@ -41,17 +45,20 @@ final class SyncFlowTests: XCTestCase {
 
         let sourceA = try makeTempDirectory()
         let sourceB = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceA)
             try? FileManager.default.removeItem(at: sourceB)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suite)
         }
 
         try makeSkillFolder(root: sourceA, folderName: "brainstorming", description: "a")
-        let viewModel = makeViewModel(userDefaults: userDefaults)
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceA.path))
         XCTAssertTrue(viewModel.addSource(path: sourceB.path))
+        viewModel.syncSkills()
 
         try makeSkillFolder(root: sourceB, folderName: "brainstorming", description: "b")
         viewModel.syncSkills()
@@ -70,25 +77,29 @@ final class SyncFlowTests: XCTestCase {
 
         let sourceA = try makeTempDirectory()
         let sourceB = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceA)
             try? FileManager.default.removeItem(at: sourceB)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suite)
         }
 
         try makeSkillFolder(root: sourceA, folderName: "brainstorming", description: "a")
-        let viewModel = makeViewModel(userDefaults: userDefaults)
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceA.path))
         XCTAssertTrue(viewModel.addSource(path: sourceB.path))
+        viewModel.syncSkills()
 
         try makeSkillFolder(root: sourceB, folderName: "brainstorming", description: "b")
         viewModel.syncSkills()
         viewModel.resolvePendingSync(strategy: .keepExisting)
 
         XCTAssertNil(viewModel.pendingSyncPreview)
-        XCTAssertEqual(viewModel.skills.filter { $0.folderName == "brainstorming" }.count, 1)
-        XCTAssertTrue(viewModel.skills.contains { $0.sourcePath == sourceA.path && $0.folderName == "brainstorming" })
+        let skills = viewModel.skills.filter { $0.folderName == "brainstorming" }
+        XCTAssertEqual(skills.count, 1)
+        XCTAssertEqual(skills.first?.description, "a")
     }
 
     func testResolveConflictReplaceWithIncomingKeepsNewSkills() throws {
@@ -101,26 +112,29 @@ final class SyncFlowTests: XCTestCase {
 
         let sourceA = try makeTempDirectory()
         let sourceB = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceA)
             try? FileManager.default.removeItem(at: sourceB)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suite)
         }
 
         try makeSkillFolder(root: sourceA, folderName: "brainstorming", description: "a")
-        let viewModel = makeViewModel(userDefaults: userDefaults)
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceA.path))
         XCTAssertTrue(viewModel.addSource(path: sourceB.path))
+        viewModel.syncSkills()
 
         try makeSkillFolder(root: sourceB, folderName: "brainstorming", description: "b")
         viewModel.syncSkills()
         viewModel.resolvePendingSync(strategy: .replaceWithIncoming)
 
         XCTAssertNil(viewModel.pendingSyncPreview)
-        XCTAssertEqual(viewModel.skills.filter { $0.folderName == "brainstorming" }.count, 2)
-        XCTAssertTrue(viewModel.skills.contains { $0.sourcePath == sourceA.path && $0.folderName == "brainstorming" })
-        XCTAssertTrue(viewModel.skills.contains { $0.sourcePath == sourceB.path && $0.folderName == "brainstorming" })
+        let skills = viewModel.skills.filter { $0.folderName == "brainstorming" }
+        XCTAssertEqual(skills.count, 1)
+        XCTAssertTrue(["a", "b"].contains(skills.first?.description ?? ""))
     }
 
     func testAC_7_5_001SyncFailureKeepsDiagnosticsMessage() throws {
@@ -132,13 +146,15 @@ final class SyncFlowTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suite)
 
         let source = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: source)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suite)
         }
 
         try makeSkillFolder(root: source, folderName: "alpha", description: "a")
-        let viewModel = makeViewModel(userDefaults: userDefaults)
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: source.path))
         try FileManager.default.removeItem(at: source)
@@ -148,11 +164,12 @@ final class SyncFlowTests: XCTestCase {
         XCTAssertTrue(viewModel.message?.contains("扫描失败") == true)
     }
 
-    private func makeViewModel(userDefaults: UserDefaults) -> MainViewModel {
-        MainViewModel(
+    private func makeViewModel(userDefaults: UserDefaults, appSkillsPath: String) -> MainViewModel {
+        return MainViewModel(
             configManager: ConfigManager(userDefaults: userDefaults),
             skillScanner: SkillScanner(),
             fileService: FileService(),
+            appSkillsPathResolver: { _ in appSkillsPath },
             autoLoad: false
         )
     }

@@ -12,22 +12,20 @@ final class SkillFilterTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suiteName)
 
         let sourceRoot = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceRoot)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
         try makeSkillFolder(root: sourceRoot, folderName: "brainstorming", description: "design workflow")
         try makeSkillFolder(root: sourceRoot, folderName: "sqlite-helper", description: "database operations")
 
-        let viewModel = MainViewModel(
-            configManager: ConfigManager(userDefaults: userDefaults),
-            skillScanner: SkillScanner(),
-            fileService: FileService(),
-            autoLoad: false
-        )
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
+        viewModel.syncSkills()
         XCTAssertEqual(viewModel.skills.count, 2)
 
         viewModel.searchText = "brain"
@@ -49,24 +47,22 @@ final class SkillFilterTests: XCTestCase {
 
         let sourceA = try makeTempDirectory()
         let sourceB = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceA)
             try? FileManager.default.removeItem(at: sourceB)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
         try makeSkillFolder(root: sourceA, folderName: "brainstorming", description: "design workflow")
         try makeSkillFolder(root: sourceB, folderName: "brainstorming-cn", description: "design in chinese")
 
-        let viewModel = MainViewModel(
-            configManager: ConfigManager(userDefaults: userDefaults),
-            skillScanner: SkillScanner(),
-            fileService: FileService(),
-            autoLoad: false
-        )
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceA.path))
         XCTAssertTrue(viewModel.addSource(path: sourceB.path))
+        viewModel.syncSkills()
         XCTAssertEqual(viewModel.skills.count, 2)
 
         guard let sourceAID = viewModel.sources.first(where: { $0.path == sourceA.path })?.id else {
@@ -98,5 +94,14 @@ final class SkillFilterTests: XCTestCase {
         """
         try content.write(to: folderURL.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8)
     }
-}
 
+    private func makeViewModel(userDefaults: UserDefaults, appSkillsPath: String) -> MainViewModel {
+        MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            appSkillsPathResolver: { _ in appSkillsPath },
+            autoLoad: false
+        )
+    }
+}

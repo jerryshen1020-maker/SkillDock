@@ -18,9 +18,11 @@ final class UITransformationTests: XCTestCase {
 
         let sourceA = try makeTempDirectory()
         let sourceB = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceA)
             try? FileManager.default.removeItem(at: sourceB)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
@@ -28,22 +30,19 @@ final class UITransformationTests: XCTestCase {
         try makeSkillFolder(root: sourceA, folderName: "beta")
         try makeSkillFolder(root: sourceB, folderName: "gamma")
 
-        let viewModel = MainViewModel(
-            configManager: ConfigManager(userDefaults: userDefaults),
-            skillScanner: SkillScanner(),
-            fileService: FileService(),
-            autoLoad: false
-        )
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceA.path))
         XCTAssertTrue(viewModel.addSource(path: sourceB.path))
-
-        let sourceAID = viewModel.sources.first(where: { $0.path == sourceA.path })?.id
-        let sourceBID = viewModel.sources.first(where: { $0.path == sourceB.path })?.id
+        viewModel.syncSkills()
 
         XCTAssertEqual(viewModel.skills.count, 3)
-        XCTAssertEqual(viewModel.sourceSkillCounts[sourceAID ?? UUID()], 2)
-        XCTAssertEqual(viewModel.sourceSkillCounts[sourceBID ?? UUID()], 1)
+        XCTAssertEqual(viewModel.sourceSkillCounts.count, 1)
+        if let installedSourceID = viewModel.skills.first?.sourceID {
+            XCTAssertEqual(viewModel.sourceSkillCounts[installedSourceID], 3)
+        } else {
+            XCTFail("missing installed skills")
+        }
     }
 
     func testFilterStillWorksAfterSwitchingTabs() throws {
@@ -55,22 +54,20 @@ final class UITransformationTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suiteName)
 
         let sourceRoot = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceRoot)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
         try makeSkillFolder(root: sourceRoot, folderName: "brainstorming")
         try makeSkillFolder(root: sourceRoot, folderName: "sqlite-helper")
 
-        let viewModel = MainViewModel(
-            configManager: ConfigManager(userDefaults: userDefaults),
-            skillScanner: SkillScanner(),
-            fileService: FileService(),
-            autoLoad: false
-        )
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
+        viewModel.syncSkills()
 
         viewModel.selectTab(.sourceManagement)
         viewModel.selectTab(.appSkills)
@@ -103,5 +100,15 @@ final class UITransformationTests: XCTestCase {
         ---
         """
         try content.write(to: folderURL.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8)
+    }
+
+    private func makeViewModel(userDefaults: UserDefaults, appSkillsPath: String) -> MainViewModel {
+        return MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            appSkillsPathResolver: { _ in appSkillsPath },
+            autoLoad: false
+        )
     }
 }

@@ -433,10 +433,13 @@ final class MainViewModel: ObservableObject {
 
     var filteredSkills: [Skill] {
         let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let selectedSourceID = selectedSourceFilterID
         return skills.filter { skill in
-            keyword.isEmpty
-            || skill.name.localizedCaseInsensitiveContains(keyword)
-            || skill.description.localizedCaseInsensitiveContains(keyword)
+            let matchesSource = selectedSourceID == nil || skill.sourceID == selectedSourceID
+            let matchesKeyword = keyword.isEmpty
+                || skill.name.localizedCaseInsensitiveContains(keyword)
+                || skill.description.localizedCaseInsensitiveContains(keyword)
+            return matchesSource && matchesKeyword
         }
     }
 
@@ -798,11 +801,11 @@ final class MainViewModel: ObservableObject {
 
         for (folderName, incomingGroup) in incomingByFolder {
             let existingGroup = currentByFolder[folderName] ?? []
-            let existingIDs = Set(existingGroup.map(\.id))
-            let incomingIDs = Set(incomingGroup.map(\.id))
-            let hasDifferentIncoming = !incomingIDs.subtracting(existingIDs).isEmpty
+            let existingPaths = Set(existingGroup.map { URL(fileURLWithPath: $0.fullPath).standardizedFileURL.path })
+            let incomingPaths = Set(incomingGroup.map { URL(fileURLWithPath: $0.fullPath).standardizedFileURL.path })
+            let hasDifferentIncoming = !incomingPaths.subtracting(existingPaths).isEmpty
             let hasExisting = !existingGroup.isEmpty
-            let hasIncomingDuplicate = incomingGroup.count > 1
+            let hasIncomingDuplicate = incomingPaths.count > 1
 
             if (hasExisting && hasDifferentIncoming) || hasIncomingDuplicate {
                 conflicts.append(

@@ -12,20 +12,18 @@ final class MainViewModelToggleTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suiteName)
 
         let tempRoot = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: tempRoot)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
         try makeSkillFolder(root: tempRoot, folderName: "brainstorming")
 
-        let viewModel = MainViewModel(
-            configManager: ConfigManager(userDefaults: userDefaults),
-            skillScanner: SkillScanner(),
-            fileService: FileService(),
-            autoLoad: false
-        )
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: tempRoot.path))
+        viewModel.syncSkills()
         guard let skill = viewModel.skills.first else {
             XCTFail("missing skill")
             return
@@ -47,8 +45,10 @@ final class MainViewModelToggleTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suiteName)
 
         let tempRoot = try makeTempDirectory()
+        let appSkills = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: tempRoot)
+            try? FileManager.default.removeItem(at: appSkills)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
         try makeSkillFolder(root: tempRoot, folderName: "brainstorming")
@@ -76,17 +76,23 @@ final class MainViewModelToggleTests: XCTestCase {
         )
         ConfigManager(userDefaults: userDefaults).saveAppConfig(seeded)
 
-        let viewModel = MainViewModel(
-            configManager: ConfigManager(userDefaults: userDefaults),
-            skillScanner: SkillScanner(),
-            fileService: FileService(),
-            autoLoad: false
-        )
+        let viewModel = makeViewModel(userDefaults: userDefaults, appSkillsPath: appSkills.path)
         viewModel.load()
+        viewModel.syncSkills()
 
         XCTAssertEqual(viewModel.skills.count, 1)
         let persisted = ConfigManager(userDefaults: userDefaults).loadAppConfig()
         XCTAssertTrue(persisted.skillStates.values.contains(false))
+    }
+
+    private func makeViewModel(userDefaults: UserDefaults, appSkillsPath: String) -> MainViewModel {
+        MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            appSkillsPathResolver: { _ in appSkillsPath },
+            autoLoad: false
+        )
     }
 
     private func makeTempDirectory() throws -> URL {
