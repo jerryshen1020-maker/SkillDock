@@ -2,6 +2,7 @@
 docs/
 CLAUDE.md
 AGENT.md
+Design/
 .DS_Store
 .swiftpm/
 .build/
