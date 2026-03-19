@@ -42,15 +42,31 @@ struct SyncPreview {
 }
 
 struct SyncDiagnostics {
+    let app: AppTarget
+    let targetPath: String
     let skippedFolderNames: [String]
     let warnings: [String]
     let fatalError: String?
+
+    init(
+        app: AppTarget = .claudeCode,
+        targetPath: String = "",
+        skippedFolderNames: [String],
+        warnings: [String],
+        fatalError: String?
+    ) {
+        self.app = app
+        self.targetPath = targetPath
+        self.skippedFolderNames = skippedFolderNames
+        self.warnings = warnings
+        self.fatalError = fatalError
+    }
 
     var hasIssues: Bool {
         fatalError != nil || !skippedFolderNames.isEmpty || !warnings.isEmpty
     }
 
-    var summaryMessage: String? {
+    func summaryMessage(prefersChinese: Bool) -> String? {
         if let fatalError {
             return fatalError
         }
@@ -59,12 +75,12 @@ struct SyncDiagnostics {
         }
         var summary: [String] = []
         if !skippedFolderNames.isEmpty {
-            summary.append("跳过 \(skippedFolderNames.count) 个冲突项")
+            summary.append(prefersChinese ? "跳过 \(skippedFolderNames.count) 个冲突项" : "Skipped \(skippedFolderNames.count) conflict items")
         }
         if !warnings.isEmpty {
             summary.append(contentsOf: warnings)
         }
-        return summary.joined(separator: "，")
+        return summary.joined(separator: prefersChinese ? "，" : ", ")
     }
 }
 
@@ -73,8 +89,11 @@ final class MainViewModel: ObservableObject {
     @Published var selectedTab: SidebarTab = .appSkills
     @Published private(set) var selectedApp: AppTarget = .claudeCode
     @Published private(set) var themeMode: ThemeMode = .system
+    @Published private(set) var skillViewMode: SkillViewMode = .installedOnly
+    @Published private(set) var language: Language = .english
     @Published private(set) var sources: [Source] = []
     @Published private(set) var skills: [Skill] = []
+    @Published private(set) var repositorySkills: [Skill] = []
     @Published var sourceInputPath: String = ""
     @Published var gitRepoInput: String = ""
     @Published var gitBranchInput: String = "main"
@@ -83,6 +102,7 @@ final class MainViewModel: ObservableObject {
     @Published private(set) var pendingSyncPreview: SyncPreview?
     @Published private(set) var latestSyncDiagnostics: SyncDiagnostics?
     @Published private(set) var isLoadingInstalledSkills: Bool = false
+    @Published private(set) var isLoadingRepositorySkills: Bool = false
     @Published private(set) var isSyncing: Bool = false
     @Published private(set) var activeGitSourceIDs: Set<UUID> = []
     @Published private(set) var gitProgressMessage: String?
@@ -119,6 +139,8 @@ final class MainViewModel: ObservableObject {
         let config = configManager.loadAppConfig()
         selectedApp = config.selectedApp
         themeMode = config.themeMode
+        skillViewMode = config.skillViewMode
+        language = config.language
         selectedTab = sidebarTab(for: config.selectedPage)
         sources = config.sources
         globalSkillStates = config.skillStates
@@ -130,6 +152,7 @@ final class MainViewModel: ObservableObject {
     func applyUITestOverridesIfNeeded(processInfo: ProcessInfo = .processInfo) {
         let arguments = Set(processInfo.arguments)
         guard arguments.contains("-uitest_mode") else { return }
+        language = .english
         if arguments.contains("-uitest_visual_snapshot") {
             selectedApp = .claudeCode
             selectedTab = .appSkills
@@ -142,9 +165,16 @@ final class MainViewModel: ObservableObject {
             ensureDefaultSource()
             refreshInstalledSkills()
         }
+        if arguments.contains("-uitest_force_chinese") {
+            language = .chinese
+        }
         if arguments.contains("-uitest_seed_toast_warning") {
             Task { @MainActor in
-                self.message = "暂无 Git 来源可更新"
+                self.message = self.localized(
+                    key: "git.batch.none",
+                    chinese: "暂无 Git 来源可更新",
+                    english: "No Git sources available to update"
+                )
             }
         }
         if arguments.contains("-uitest_seed_unavailable_source") {
@@ -186,15 +216,15 @@ final class MainViewModel: ObservableObject {
     func addSource(path: String) -> Bool {
         let normalizedPath = normalized(path)
         guard !normalizedPath.isEmpty else {
-            message = "路径不能为空"
+            message = localized(chinese: "路径不能为空", english: "Path cannot be empty")
             return false
         }
         guard fileService.directoryExists(normalizedPath) else {
-            message = "目录不存在：\(normalizedPath)"
+            message = localized(chinese: "目录不存在：\(normalizedPath)", english: "Directory not found: \(normalizedPath)")
             return false
         }
         guard !sources.contains(where: { normalized($0.path) == normalizedPath }) else {
-            message = "来源目录已存在"
+            message = localized(chinese: "来源目录已存在", english: "Source directory already exists")
             return false
         }
 
@@ -206,30 +236,38 @@ final class MainViewModel: ObservableObject {
         sources.append(source)
         persistAppConfig()
         refreshSkills()
-        message = "已添加来源：\(source.displayName)"
+        message = localized(chinese: "已添加来源：\(source.displayName)", english: "Added source: \(source.displayName)")
         return true
     }
 
     func removeSource(_ source: Source) {
         if source.isBuiltIn {
-            message = "内置来源不可移除"
+            message = localized(chinese: "内置来源不可移除", english: "Built-in source cannot be removed")
             return
         }
         sources.removeAll { $0.id == source.id }
         persistAppConfig()
         refreshSkills()
-        message = "已移除来源：\(source.displayName)"
+        message = localized(chinese: "已移除来源：\(source.displayName)", english: "Removed source: \(source.displayName)")
     }
 
     @discardableResult
     func addGitSource(repoURL: String, branch: String?) -> Bool {
         let normalizedRepoURL = repoURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedRepoURL.isEmpty else {
-            message = "仓库地址不能为空"
+            message = localized(
+                key: "git.repo.empty",
+                chinese: "仓库地址不能为空",
+                english: "Repository URL cannot be empty"
+            )
             return false
         }
         guard !sources.contains(where: { $0.type == .git && $0.repoURL == normalizedRepoURL }) else {
-            message = "Git 来源已存在"
+            message = localized(
+                key: "git.source.exists",
+                chinese: "Git 来源已存在",
+                english: "Git source already exists"
+            )
             return false
         }
 
@@ -260,7 +298,7 @@ final class MainViewModel: ObservableObject {
             sources.append(source)
             persistAppConfig()
             refreshSkills()
-            message = "已添加 Git 来源：\(source.displayName)"
+            message = localized(chinese: "已添加 Git 来源：\(source.displayName)", english: "Added Git source: \(source.displayName)")
             return true
         case .failure(let error):
             let source = Source(
@@ -275,7 +313,7 @@ final class MainViewModel: ObservableObject {
             sources.append(source)
             persistAppConfig()
             refreshSkills()
-            message = "哎呀，Git 仓库拉取失败：\(source.displayName)"
+            message = localized(chinese: "哎呀，Git 仓库拉取失败：\(source.displayName)", english: "Oops, failed to clone Git repository: \(source.displayName)")
             return false
         }
     }
@@ -301,20 +339,28 @@ final class MainViewModel: ObservableObject {
                 to: source.path
             )
         } else {
-            result = .failure(GitServiceError(message: "缺少仓库地址"))
+            result = .failure(
+                GitServiceError(
+                    message: localized(
+                        key: "git.repo.missing",
+                        chinese: "缺少仓库地址",
+                        english: "Missing repository URL"
+                    )
+                )
+            )
         }
 
         switch result {
         case .success:
             replaceSource(source.withAvailability(isAvailable: true, lastError: nil))
             persistAppConfig()
-            refreshInstalledSkills()
-            message = "已更新 Git 来源：\(source.displayName)"
+            refreshSkillsForCurrentMode()
+            message = localized(chinese: "已更新 Git 来源：\(source.displayName)", english: "Updated Git source: \(source.displayName)")
             return true
         case .failure(let error):
             replaceSource(source.withAvailability(isAvailable: false, lastError: error.localizedDescription))
             persistAppConfig()
-            message = "哎呀，更新失败：\(source.displayName)"
+            message = localized(chinese: "哎呀，更新失败：\(source.displayName)", english: "Oops, update failed: \(source.displayName)")
             return false
         }
     }
@@ -327,18 +373,31 @@ final class MainViewModel: ObservableObject {
         if fileService.directoryExists(source.path) {
             replaceSource(source.withAvailability(isAvailable: true, lastError: nil))
             persistAppConfig()
-            message = "来源恢复可用：\(source.displayName)"
+            message = localized(chinese: "来源恢复可用：\(source.displayName)", english: "Source restored: \(source.displayName)")
         } else {
-            replaceSource(source.withAvailability(isAvailable: false, lastError: "目录不存在"))
+            replaceSource(
+                source.withAvailability(
+                    isAvailable: false,
+                    lastError: localized(
+                        key: "source.error.directoryNotFound",
+                        chinese: "目录不存在",
+                        english: "Directory not found"
+                    )
+                )
+            )
             persistAppConfig()
-            message = "哎呀，目录还是不可用：\(source.displayName)"
+            message = localized(chinese: "哎呀，目录还是不可用：\(source.displayName)", english: "Oops, source is still unavailable: \(source.displayName)")
         }
     }
 
     func updateAllGitSourcesInBackground() {
         let gitSources = sources.filter { $0.type == .git }
         guard !gitSources.isEmpty else {
-            message = "暂无 Git 来源可更新"
+            message = localized(
+                key: "git.batch.none",
+                chinese: "暂无 Git 来源可更新",
+                english: "No Git sources available to update"
+            )
             return
         }
         Task {
@@ -349,11 +408,11 @@ final class MainViewModel: ObservableObject {
                 }
             }
             persistAppConfig()
-            refreshInstalledSkills()
+            refreshSkillsForCurrentMode()
             if successCount == gitSources.count {
-                message = "Git 来源全部更新完成（\(successCount)/\(gitSources.count)）"
+                message = localized(chinese: "Git 来源全部更新完成（\(successCount)/\(gitSources.count)）", english: "All Git sources updated (\(successCount)/\(gitSources.count))")
             } else {
-                message = "Git 来源更新完成（成功 \(successCount)/\(gitSources.count)）"
+                message = localized(chinese: "Git 来源更新完成（成功 \(successCount)/\(gitSources.count)）", english: "Git source update finished (success \(successCount)/\(gitSources.count))")
             }
             gitProgressMessage = nil
         }
@@ -362,6 +421,9 @@ final class MainViewModel: ObservableObject {
     func selectTab(_ tab: SidebarTab) {
         guard selectedTab != tab else { return }
         selectedTab = tab
+        if tab != .appSkills {
+            latestSyncDiagnostics = nil
+        }
         persistAppConfig()
     }
 
@@ -370,17 +432,107 @@ final class MainViewModel: ObservableObject {
         selectedApp = app
         selectedTab = .appSkills
         selectedSourceFilterID = nil
+        latestSyncDiagnostics = nil
         ensureDefaultSource()
-        refreshInstalledSkills()
+        refreshSkillsForCurrentMode()
         persistAppConfig()
-        message = "已切换应用：\(app.displayName)"
     }
 
     func setThemeMode(_ mode: ThemeMode) {
         guard themeMode != mode else { return }
         themeMode = mode
         persistAppConfig()
-        message = "主题已切换为\(themeModeLabel(mode))"
+        message = localized(chinese: "主题已切换为\(themeModeLabel(mode))", english: "Theme changed to \(themeModeLabel(mode))")
+    }
+
+    func selectSkillViewMode(_ mode: SkillViewMode) {
+        guard skillViewMode != mode else { return }
+        skillViewMode = mode
+        refreshSkillsForCurrentMode()
+        persistAppConfig()
+    }
+
+    func setLanguage(_ language: Language) {
+        guard self.language != language else { return }
+        self.language = language
+        persistAppConfig()
+        if language == .chinese {
+            message = localized(
+                key: "toast.language.chinese",
+                chinese: "语言已切换至 简体中文",
+                english: "Language changed to Chinese (Simplified)"
+            )
+        } else {
+            message = localized(
+                key: "toast.language.english",
+                chinese: "语言已切换至 English",
+                english: "Language changed to English"
+            )
+        }
+    }
+
+    func installSkillFromRepository(_ skill: Skill) {
+        let fileManager = FileManager.default
+        let targetRootURL = URL(fileURLWithPath: selectedAppSkillsPath, isDirectory: true).standardizedFileURL
+        let destinationURL = targetRootURL.appendingPathComponent(skill.folderName, isDirectory: true).standardizedFileURL
+        let sourceURL = URL(fileURLWithPath: skill.fullPath, isDirectory: true).standardizedFileURL
+        do {
+            try fileManager.createDirectory(at: targetRootURL, withIntermediateDirectories: true)
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                guard let existingType = try fileManager.attributesOfItem(atPath: destinationURL.path)[.type] as? FileAttributeType else {
+                    message = localized(chinese: "哎呀，安装失败：\(skill.name)", english: "Oops, install failed: \(skill.name)")
+                    return
+                }
+                if existingType == .typeSymbolicLink {
+                    let existingDestination = try resolvedSymlinkDestination(at: destinationURL.path)
+                    if existingDestination == sourceURL.path {
+                        message = localized(chinese: "已安装：\(skill.name)", english: "Already installed: \(skill.name)")
+                        return
+                    }
+                } else {
+                    if existingType != .typeDirectory && existingType != .typeRegular {
+                        message = localized(chinese: "哎呀，安装失败：目标路径不可覆盖", english: "Oops, install failed: target path cannot be replaced")
+                        return
+                    }
+                }
+                try fileManager.removeItem(at: destinationURL)
+            }
+            try fileManager.createSymbolicLink(atPath: destinationURL.path, withDestinationPath: sourceURL.path)
+            refreshInstalledSkills()
+            if skillViewMode == .sourceRepository {
+                refreshRepositorySkills()
+            }
+            message = localized(chinese: "已安装 Skill：\(skill.name)", english: "Installed skill: \(skill.name)")
+        } catch {
+            message = localized(chinese: "哎呀，安装失败：\(skill.name)", english: "Oops, install failed: \(skill.name)")
+        }
+    }
+
+    var prefersChinese: Bool {
+        language == .chinese
+    }
+
+    func localized(chinese: String, english: String) -> String {
+        prefersChinese ? chinese : english
+    }
+
+    func localized(key: String, chinese: String, english: String) -> String {
+        let localeIdentifier = prefersChinese ? "zh-Hans" : "en"
+        if let localizedValue = localizedValueFromBundle(key: key, localeIdentifier: localeIdentifier) {
+            return localizedValue
+        }
+        return prefersChinese ? chinese : english
+    }
+
+    private func localizedValueFromBundle(key: String, localeIdentifier: String) -> String? {
+        guard
+            let lprojPath = Bundle.main.path(forResource: localeIdentifier, ofType: "lproj"),
+            let localizedBundle = Bundle(path: lprojPath)
+        else {
+            return nil
+        }
+        let value = localizedBundle.localizedString(forKey: key, value: nil, table: nil)
+        return value == key ? nil : value
     }
 
     func clearSyncDiagnostics() {
@@ -389,20 +541,20 @@ final class MainViewModel: ObservableObject {
 
     func copyLatestSyncDiagnostics() {
         guard let diagnostics = latestSyncDiagnostics, diagnostics.hasIssues else {
-            message = "暂无可复制的同步详情"
+            message = localized(chinese: "暂无可复制的同步详情", english: "No sync diagnostics available to copy")
             return
         }
         let report = buildSyncDiagnosticsReport(diagnostics)
         if fileService.copyTextToClipboard(report) {
-            message = "同步异常详情已复制"
+            message = localized(chinese: "同步异常详情已复制", english: "Sync diagnostics copied")
         } else {
-            message = "哎呀，复制失败，请稍后重试"
+            message = localized(chinese: "哎呀，复制失败，请稍后重试", english: "Oops, copy failed, please try again")
         }
     }
 
     func exportLatestSyncDiagnostics() {
         guard let diagnostics = latestSyncDiagnostics, diagnostics.hasIssues else {
-            message = "暂无可导出的同步详情"
+            message = localized(chinese: "暂无可导出的同步详情", english: "No sync diagnostics available to export")
             return
         }
         let report = buildSyncDiagnosticsReport(diagnostics)
@@ -411,15 +563,15 @@ final class MainViewModel: ObservableObject {
         let filename = "skilldock-sync-diagnostics-\(formatter.string(from: Date())).txt"
         switch fileService.saveTextWithPanel(defaultFileName: filename, content: report) {
         case .success(let path):
-            message = "已导出同步日志：\(path)"
+            message = localized(chinese: "已导出同步日志：\(path)", english: "Exported sync log: \(path)")
         case .cancelled:
-            message = "已取消导出"
+            message = localized(chinese: "已取消导出", english: "Export cancelled")
         case .permissionDenied:
-            message = "哎呀，没有写入权限，请选择其他目录"
+            message = localized(chinese: "哎呀，没有写入权限，请选择其他目录", english: "Oops, no write permission, please choose another folder")
         case .writeFailed:
-            message = "哎呀，写入失败，请稍后重试"
+            message = localized(chinese: "哎呀，写入失败，请稍后重试", english: "Oops, failed to write file, please try again")
         case .unsupported:
-            message = "当前系统暂不支持导出"
+            message = localized(chinese: "当前系统暂不支持导出", english: "Export is not supported on this system")
         }
     }
 
@@ -434,17 +586,46 @@ final class MainViewModel: ObservableObject {
     var filteredSkills: [Skill] {
         let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let selectedSourceID = selectedSourceFilterID
-        return skills.filter { skill in
+        let filtered = displayedSkills.filter { skill in
             let matchesSource = selectedSourceID == nil || skill.sourceID == selectedSourceID
             let matchesKeyword = keyword.isEmpty
                 || skill.name.localizedCaseInsensitiveContains(keyword)
                 || skill.description.localizedCaseInsensitiveContains(keyword)
             return matchesSource && matchesKeyword
         }
+        if skillViewMode == .sourceRepository {
+            let installedNames = installedSkillFolderNames
+            return filtered.sorted { lhs, rhs in
+                let lhsInstalled = installedNames.contains(lhs.folderName)
+                let rhsInstalled = installedNames.contains(rhs.folderName)
+                if lhsInstalled != rhsInstalled {
+                    return !lhsInstalled && rhsInstalled
+                }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+        }
+        return filtered
+    }
+
+    var displayedSkills: [Skill] {
+        switch skillViewMode {
+        case .installedOnly:
+            return skills
+        case .sourceRepository:
+            return repositorySkills
+        }
     }
 
     var sourceSkillCounts: [UUID: Int] {
-        Dictionary(grouping: skills, by: \.sourceID).mapValues(\.count)
+        Dictionary(grouping: displayedSkills, by: \.sourceID).mapValues(\.count)
+    }
+
+    var installedSkillFolderNames: Set<String> {
+        Set(skills.map(\.folderName))
+    }
+
+    func isSkillInstalled(_ skill: Skill) -> Bool {
+        installedSkillFolderNames.contains(skill.folderName)
     }
 
     func isSkillEnabled(_ skill: Skill) -> Bool {
@@ -471,15 +652,15 @@ final class MainViewModel: ObservableObject {
 
         for source in sources {
             guard fileService.directoryExists(source.path) else {
-                latestSources.append(source.withAvailability(isAvailable: false, lastError: "目录不存在"))
-                scanErrors.append("\(source.displayName) 扫描失败")
+                latestSources.append(source.withAvailability(isAvailable: false, lastError: localized(chinese: "目录不存在", english: "Directory not found")))
+                scanErrors.append(localized(chinese: "\(source.displayName) 扫描失败", english: "Failed to scan \(source.displayName)"))
                 continue
             }
             latestSources.append(source.withAvailability(isAvailable: true, lastError: nil))
         }
 
         sources = latestSources
-        refreshInstalledSkills()
+        refreshSkillsForCurrentMode()
         persistAppConfig()
         if !scanErrors.isEmpty {
             message = scanErrors.joined(separator: "；")
@@ -495,14 +676,14 @@ final class MainViewModel: ObservableObject {
 
         for source in sources {
             guard fileService.directoryExists(source.path) else {
-                scanErrors.append("\(source.displayName) 扫描失败")
+                scanErrors.append(localized(chinese: "\(source.displayName) 扫描失败", english: "Failed to scan \(source.displayName)"))
                 continue
             }
             do {
                 let scanned = try skillScanner.scanDirectory(source.path, sourceID: source.id)
                 incoming.append(contentsOf: scanned)
             } catch {
-                scanErrors.append("\(source.displayName) 扫描失败")
+                scanErrors.append(localized(chinese: "\(source.displayName) 扫描失败", english: "Failed to scan \(source.displayName)"))
             }
         }
 
@@ -516,12 +697,12 @@ final class MainViewModel: ObservableObject {
 
         if conflicts.isEmpty {
             pendingSyncPreview = nil
-            message = "同步完成：新增 \(addedCount) 个，移除 \(removedCount) 个"
+            message = localized(chinese: "同步完成：新增 \(addedCount) 个，移除 \(removedCount) 个", english: "Sync completed: added \(addedCount), removed \(removedCount)")
             let diagnostics = syncSkillsToSelectedAppDirectory(from: incoming)
             if diagnostics.hasIssues {
                 latestSyncDiagnostics = diagnostics
             }
-            if let syncSummary = diagnostics.summaryMessage {
+            if let syncSummary = diagnostics.summaryMessage(prefersChinese: prefersChinese) {
                 appendMessage(syncSummary)
             }
             if !scanErrors.isEmpty {
@@ -539,7 +720,7 @@ final class MainViewModel: ObservableObject {
             conflicts: conflicts
         )
         latestSyncDiagnostics = nil
-        message = "检测到 \(conflicts.count) 个同名冲突，请选择处理方式"
+        message = localized(chinese: "检测到 \(conflicts.count) 个同名冲突，请选择处理方式", english: "Detected \(conflicts.count) name conflicts, choose how to resolve")
         isSyncing = false
     }
 
@@ -560,14 +741,14 @@ final class MainViewModel: ObservableObject {
 
         isSyncing = true
         pendingSyncPreview = nil
-        message = "同步完成：新增 \(preview.addedCount) 个，移除 \(preview.removedCount) 个，冲突已处理"
+        message = localized(chinese: "同步完成：新增 \(preview.addedCount) 个，移除 \(preview.removedCount) 个，冲突已处理", english: "Sync completed: added \(preview.addedCount), removed \(preview.removedCount), conflicts resolved")
         let diagnostics = syncSkillsToSelectedAppDirectory(from: resolved)
         if diagnostics.hasIssues {
             latestSyncDiagnostics = diagnostics
         } else {
             latestSyncDiagnostics = nil
         }
-        if let syncSummary = diagnostics.summaryMessage {
+        if let syncSummary = diagnostics.summaryMessage(prefersChinese: prefersChinese) {
             appendMessage(syncSummary)
         }
         refreshInstalledSkills()
@@ -576,17 +757,25 @@ final class MainViewModel: ObservableObject {
 
     func cancelPendingSync() {
         pendingSyncPreview = nil
-        message = "已取消同步冲突处理"
+        message = localized(chinese: "已取消同步冲突处理", english: "Sync conflict resolution cancelled")
     }
 
     func addGitSourceInBackground(repoURL: String, branch: String?) {
         let normalizedRepoURL = repoURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedRepoURL.isEmpty else {
-            message = "仓库地址不能为空"
+            message = localized(
+                key: "git.repo.empty",
+                chinese: "仓库地址不能为空",
+                english: "Repository URL cannot be empty"
+            )
             return
         }
         guard !sources.contains(where: { $0.type == .git && $0.repoURL == normalizedRepoURL }) else {
-            message = "Git 来源已存在"
+            message = localized(
+                key: "git.source.exists",
+                chinese: "Git 来源已存在",
+                english: "Git source already exists"
+            )
             return
         }
 
@@ -605,11 +794,15 @@ final class MainViewModel: ObservableObject {
             repoURL: normalizedRepoURL,
             branch: normalizedBranch?.isEmpty == true ? nil : normalizedBranch,
             isAvailable: false,
-            lastError: "克隆中..."
+            lastError: localized(
+                key: "git.clone.inProgress",
+                chinese: "克隆中...",
+                english: "Cloning..."
+            )
         )
         sources.append(pendingSource)
         activeGitSourceIDs.insert(pendingSource.id)
-        gitProgressMessage = "正在克隆 \(displayName) 仓库..."
+        gitProgressMessage = localized(chinese: "正在克隆 \(displayName) 仓库...", english: "Cloning \(displayName) repository...")
         persistAppConfig()
 
         Task {
@@ -620,8 +813,8 @@ final class MainViewModel: ObservableObject {
             while attempt < maxAttempts {
                 attempt += 1
                 gitProgressMessage = attempt == 1
-                    ? "正在克隆 \(displayName) 仓库..."
-                    : "正在克隆 \(displayName) 仓库...（第\(attempt)次）"
+                    ? localized(chinese: "正在克隆 \(displayName) 仓库...", english: "Cloning \(displayName) repository...")
+                    : localized(chinese: "正在克隆 \(displayName) 仓库...（第\(attempt)次）", english: "Cloning \(displayName) repository... (attempt \(attempt))")
                 let cloneResult = await gitService.cloneAsync(
                     repoURL: normalizedRepoURL,
                     branch: normalizedBranch?.isEmpty == true ? nil : normalizedBranch,
@@ -646,18 +839,22 @@ final class MainViewModel: ObservableObject {
             if success {
                 replaceSource(pendingSource.withAvailability(isAvailable: true, lastError: nil))
                 persistAppConfig()
-                refreshInstalledSkills()
-                message = "已添加 Git 来源：\(displayName)"
+                refreshSkillsForCurrentMode()
+                message = localized(chinese: "已添加 Git 来源：\(displayName)", english: "Added Git source: \(displayName)")
             } else {
-                let errorMessage = lastError?.localizedDescription ?? "未知错误"
+                let errorMessage = lastError?.localizedDescription ?? localized(
+                    key: "common.error.unknown",
+                    chinese: "未知错误",
+                    english: "Unknown error"
+                )
                 replaceSource(
                     pendingSource.withAvailability(
                         isAvailable: false,
-                        lastError: "重试 \(maxAttempts) 次失败：\(errorMessage)"
+                        lastError: localized(chinese: "重试 \(maxAttempts) 次失败：\(errorMessage)", english: "Failed after \(maxAttempts) retries: \(errorMessage)")
                     )
                 )
                 persistAppConfig()
-                message = "哎呀，Git 仓库拉取失败：\(displayName)"
+                message = localized(chinese: "哎呀，Git 仓库拉取失败：\(displayName)", english: "Oops, failed to clone Git repository: \(displayName)")
             }
             if activeGitSourceIDs.isEmpty {
                 gitProgressMessage = nil
@@ -672,14 +869,18 @@ final class MainViewModel: ObservableObject {
             do {
                 try FileManager.default.removeItem(at: targetURL)
                 refreshInstalledSkills()
-                message = "已移除 \(skill.name)"
+                message = localized(chinese: "已移除 \(skill.name)", english: "Removed \(skill.name)")
             } catch {
-                message = "哎呀，移除失败：\(skill.name)"
+                message = localized(chinese: "哎呀，移除失败：\(skill.name)", english: "Oops, failed to remove: \(skill.name)")
             }
             return
         }
         refreshInstalledSkills()
-        message = "该 Skill 已不存在"
+        message = localized(
+            key: "skills.error.notFound",
+            chinese: "该 Skill 已不存在",
+            english: "This skill no longer exists"
+        )
     }
 
     func clearAllInstalledSkills() {
@@ -695,9 +896,9 @@ final class MainViewModel: ObservableObject {
                 try FileManager.default.removeItem(at: item)
             }
             refreshInstalledSkills()
-            message = "已清空 \(selectedApp.displayName) 的全部 Skill"
+            message = localized(chinese: "已清空 \(selectedApp.displayName) 的全部 Skill", english: "Cleared all skills for \(selectedApp.displayName)")
         } catch {
-            message = "哎呀，清空失败：\(error.localizedDescription)"
+            message = localized(chinese: "哎呀，清空失败：\(error.localizedDescription)", english: "Oops, failed to clear skills: \(error.localizedDescription)")
         }
     }
 
@@ -709,7 +910,13 @@ final class MainViewModel: ObservableObject {
             skills = scanned
         } catch {
             skills = []
-            appendMessage("哎呀，读取已安装 Skill 失败")
+            appendMessage(
+                localized(
+                    key: "skills.error.loadInstalledFailed",
+                    chinese: "哎呀，读取已安装 Skill 失败",
+                    english: "Oops, failed to load installed skills"
+                )
+            )
         }
         isLoadingInstalledSkills = false
     }
@@ -729,7 +936,7 @@ final class MainViewModel: ObservableObject {
     private func updateGitSourceAsync(_ source: Source, refreshAfterSuccess: Bool = true) async -> Bool {
         guard source.type == .git else { return false }
         activeGitSourceIDs.insert(source.id)
-        gitProgressMessage = "正在更新 \(source.displayName)..."
+        gitProgressMessage = localized(chinese: "正在更新 \(source.displayName)...", english: "Updating \(source.displayName)...")
         let branch = source.branch?.trimmingCharacters(in: .whitespacesAndNewlines)
         let result: Result<Void, Error>
         if fileService.directoryExists(source.path) {
@@ -744,7 +951,15 @@ final class MainViewModel: ObservableObject {
                 to: source.path
             )
         } else {
-            result = .failure(GitServiceError(message: "缺少仓库地址"))
+            result = .failure(
+                GitServiceError(
+                    message: localized(
+                        key: "git.repo.missing",
+                        chinese: "缺少仓库地址",
+                        english: "Missing repository URL"
+                    )
+                )
+            )
         }
 
         activeGitSourceIDs.remove(source.id)
@@ -754,7 +969,7 @@ final class MainViewModel: ObservableObject {
             persistAppConfig()
             if refreshAfterSuccess {
                 refreshInstalledSkills()
-                message = "已更新 Git 来源：\(source.displayName)"
+                message = localized(chinese: "已更新 Git 来源：\(source.displayName)", english: "Updated Git source: \(source.displayName)")
             }
             if activeGitSourceIDs.isEmpty {
                 gitProgressMessage = nil
@@ -763,7 +978,7 @@ final class MainViewModel: ObservableObject {
         case .failure(let error):
             replaceSource(source.withAvailability(isAvailable: false, lastError: error.localizedDescription))
             persistAppConfig()
-            message = "哎呀，更新失败：\(source.displayName)"
+            message = localized(chinese: "哎呀，更新失败：\(source.displayName)", english: "Oops, update failed: \(source.displayName)")
             if activeGitSourceIDs.isEmpty {
                 gitProgressMessage = nil
             }
@@ -776,6 +991,8 @@ final class MainViewModel: ObservableObject {
         config.sources = sources
         config.selectedApp = selectedApp
         config.themeMode = themeMode
+        config.skillViewMode = skillViewMode
+        config.language = language
         config.selectedPage = selectedPage(for: selectedTab)
         config.skillStates = globalSkillStates
         configManager.saveAppConfig(config)
@@ -843,6 +1060,14 @@ final class MainViewModel: ObservableObject {
             return UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
         case .traeCN:
             return UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
+        case .workBuddy:
+            return UUID(uuidString: "66666666-6666-6666-6666-666666666666")!
+        case .codeBuddy:
+            return UUID(uuidString: "77777777-7777-7777-7777-777777777777")!
+        case .aionUI:
+            return UUID(uuidString: "88888888-8888-8888-8888-888888888888")!
+        case .qoder:
+            return UUID(uuidString: "99999999-9999-9999-9999-999999999999")!
         }
     }
 
@@ -913,7 +1138,8 @@ final class MainViewModel: ObservableObject {
 
     private func syncSkillsToSelectedAppDirectory(from skills: [Skill]) -> SyncDiagnostics {
         let fileManager = FileManager.default
-        let targetRootPath = normalized(appSkillsPathResolver(selectedApp))
+        let currentApp = selectedApp
+        let targetRootPath = normalized(appSkillsPathResolver(currentApp))
         let targetRootURL = URL(fileURLWithPath: targetRootPath, isDirectory: true)
         var skippedFolderNames: [String] = []
         var warnings: [String] = []
@@ -930,7 +1156,7 @@ final class MainViewModel: ObservableObject {
                     sourceRoots: sourceRoots
                 )
             } catch {
-                warnings.append("历史链接清理失败")
+                warnings.append(localized(chinese: "历史链接清理失败", english: "Failed to clean stale links"))
             }
             for skill in uniqueSkills {
                 let destinationURL = targetRootURL
@@ -951,12 +1177,13 @@ final class MainViewModel: ObservableObject {
                         skippedFolderNames.append(skill.folderName)
                         continue
                     }
-                    if existingType != .typeSymbolicLink {
+                    if existingType == .typeSymbolicLink {
+                        let existingDestination = (try? resolvedSymlinkDestination(at: destinationURL.path)) ?? ""
+                        if existingDestination == sourceURL.path {
+                            continue
+                        }
+                    } else if existingType != .typeDirectory && existingType != .typeRegular {
                         skippedFolderNames.append(skill.folderName)
-                        continue
-                    }
-                    let existingDestination = (try? resolvedSymlinkDestination(at: destinationURL.path)) ?? ""
-                    if existingDestination == sourceURL.path {
                         continue
                     }
                     do {
@@ -977,12 +1204,19 @@ final class MainViewModel: ObservableObject {
             }
         } catch {
             return SyncDiagnostics(
+                app: currentApp,
+                targetPath: targetRootPath,
                 skippedFolderNames: [],
                 warnings: [],
-                fatalError: "哎呀，\(selectedApp.displayName) 同步失败：\(error.localizedDescription)"
+                fatalError: localized(
+                    chinese: "哎呀，\(currentApp.displayName) 同步失败：\(error.localizedDescription)",
+                    english: "Oops, failed to sync \(currentApp.displayName): \(error.localizedDescription)"
+                )
             )
         }
         return SyncDiagnostics(
+            app: currentApp,
+            targetPath: targetRootPath,
             skippedFolderNames: skippedFolderNames.sorted(),
             warnings: warnings,
             fatalError: nil
@@ -1045,7 +1279,7 @@ final class MainViewModel: ObservableObject {
 
     private func scanSkillsFromSources() -> [Skill] {
         var aggregated: [Skill] = []
-        for source in sources where source.isAvailable {
+        for source in sources where source.isAvailable && !source.isBuiltIn {
             do {
                 let scanned = try skillScanner.scanDirectory(source.path, sourceID: source.id)
                 aggregated.append(contentsOf: scanned)
@@ -1056,32 +1290,48 @@ final class MainViewModel: ObservableObject {
         return aggregated.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
+    private func refreshRepositorySkills() {
+        isLoadingRepositorySkills = true
+        repositorySkills = scanSkillsFromSources()
+        isLoadingRepositorySkills = false
+    }
+
+    private func refreshSkillsForCurrentMode() {
+        switch skillViewMode {
+        case .installedOnly:
+            refreshInstalledSkills()
+        case .sourceRepository:
+            refreshRepositorySkills()
+        }
+    }
+
     private func themeModeLabel(_ mode: ThemeMode) -> String {
         switch mode {
         case .system:
-            return "跟随系统"
+            return localized(chinese: "跟随系统", english: "System")
         case .light:
-            return "浅色"
+            return localized(chinese: "浅色", english: "Light")
         case .dark:
-            return "深色"
+            return localized(chinese: "深色", english: "Dark")
         }
     }
 
     private func buildSyncDiagnosticsReport(_ diagnostics: SyncDiagnostics) -> String {
         let formatter = ISO8601DateFormatter()
         var lines: [String] = []
-        lines.append("SkillDock 同步异常详情")
-        lines.append("时间：\(formatter.string(from: Date()))")
-        lines.append("应用：\(selectedApp.displayName)")
-        lines.append("目标目录：\(selectedAppSkillsPath)")
+        lines.append(localized(chinese: "SkillDock 同步异常详情", english: "SkillDock Sync Diagnostics"))
+        lines.append(localized(chinese: "时间：\(formatter.string(from: Date()))", english: "Time: \(formatter.string(from: Date()))"))
+        lines.append(localized(chinese: "应用：\(diagnostics.app.displayName)", english: "App: \(diagnostics.app.displayName)"))
+        let reportPath = diagnostics.targetPath.isEmpty ? selectedAppSkillsPath : diagnostics.targetPath
+        lines.append(localized(chinese: "目标目录：\(reportPath)", english: "Target path: \(reportPath)"))
         if let fatalError = diagnostics.fatalError, !fatalError.isEmpty {
-            lines.append("错误：\(fatalError)")
+            lines.append(localized(chinese: "错误：\(fatalError)", english: "Error: \(fatalError)"))
         }
         if !diagnostics.skippedFolderNames.isEmpty {
-            lines.append("跳过项：\(diagnostics.skippedFolderNames.joined(separator: "、"))")
+            lines.append(localized(chinese: "跳过项：\(diagnostics.skippedFolderNames.joined(separator: "、"))", english: "Skipped: \(diagnostics.skippedFolderNames.joined(separator: ", "))"))
         }
         if !diagnostics.warnings.isEmpty {
-            lines.append("提示：\(diagnostics.warnings.joined(separator: "；"))")
+            lines.append(localized(chinese: "提示：\(diagnostics.warnings.joined(separator: "；"))", english: "Warnings: \(diagnostics.warnings.joined(separator: "; "))"))
         }
         return lines.joined(separator: "\n")
     }

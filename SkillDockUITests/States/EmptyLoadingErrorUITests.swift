@@ -7,15 +7,17 @@ final class EmptyLoadingErrorUITests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
     }
 
-    func testWarningToastCanBeDisplayed() {
+    func testSwitchAppDoesNotShowToast() {
         let app = XCUIApplication()
+        app.launchArguments += ["-uitest_mode", "-uitest_visual_snapshot"]
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
         let switchButton = app.buttons["app-target-codex"].firstMatch
         XCTAssertTrue(switchButton.waitForExistence(timeout: 2))
         switchButton.click()
-        XCTAssertTrue(app.staticTexts["已切换应用：Codex"].waitForExistence(timeout: 2))
+        let successToast = app.descendants(matching: .any).matching(identifier: "toast-success").firstMatch
+        XCTAssertFalse(successToast.waitForExistence(timeout: 2))
     }
 
     func testUnavailableSourceBannerCanBeDisplayed() {
@@ -24,11 +26,12 @@ final class EmptyLoadingErrorUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
-        let sourceTabButton = app.buttons["来源管理"].firstMatch
+        let sourceTabButton = app.buttons["sidebar-source-management"].firstMatch
         if sourceTabButton.waitForExistence(timeout: 1) {
             sourceTabButton.click()
         }
-        XCTAssertTrue(app.staticTexts["有来源暂不可用"].waitForExistence(timeout: 2))
+        let unavailableBanner = app.descendants(matching: .any).matching(identifier: "unavailable-sources-banner").firstMatch
+        XCTAssertTrue(unavailableBanner.waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["UI Test Unavailable"].exists)
     }
 }

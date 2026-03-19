@@ -2,7 +2,7 @@ import XCTest
 
 final class VisualSnapshotCaptureUITests: XCTestCase {
     private var app: XCUIApplication!
-    private let baseLaunchArguments = ["-uitest_mode", "-uitest_visual_snapshot"]
+    private let baseLaunchArguments = ["-uitest_mode", "-uitest_visual_snapshot", "-uitest_force_chinese"]
 
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -19,7 +19,7 @@ final class VisualSnapshotCaptureUITests: XCTestCase {
     func testCaptureV12VisualSnapshots() throws {
         tapButtonWithID("app-target-claudeCode")
         
-        tapButtonIfExists("设置")
+        tapButtonIfExists("sidebar-settings")
         tapButtonIfExists("浅色")
 
         tapButtonWithID("app-target-claudeCode")
@@ -28,13 +28,13 @@ final class VisualSnapshotCaptureUITests: XCTestCase {
             folder: "skills"
         )
 
-        tapButtonIfExists("来源管理")
+        tapButtonIfExists("sidebar-source-management")
         try saveScreenshot(
             named: "source__default__light__900x600.png",
             folder: "source"
         )
 
-        tapButtonIfExists("设置")
+        tapButtonIfExists("sidebar-settings")
         try saveScreenshot(
             named: "settings__default__light__900x600.png",
             folder: "settings"
@@ -69,9 +69,9 @@ final class VisualSnapshotCaptureUITests: XCTestCase {
         RunLoop.current.run(until: Date().addingTimeInterval(0.35))
     }
 
-    private func tapButtonIfExists(_ title: String) {
+    private func tapButtonIfExists(_ identifier: String) {
         ensureAppIsReady()
-        let button = app.buttons[title].firstMatch
+        let button = app.buttons[identifier].firstMatch
         if button.waitForExistence(timeout: 3) {
             button.click()
             RunLoop.current.run(until: Date().addingTimeInterval(0.35))

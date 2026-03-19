@@ -1,60 +1,70 @@
 # SkillDock
 
-SkillDock 是一款 macOS 应用，用于统一管理多应用的 AI skills。支持本地目录与 Git 来源、一键同步、全局开关与状态反馈。
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
-## 主要功能
+SkillDock is a macOS app for unified AI skill management across multiple applications. It supports local folders and Git sources, one-click sync, global toggles, and clear status feedback.
 
-- 多应用技能目录管理（Claude Code / Codex / OpenCode / Trae / Trae CN）
-- 本地来源与 Git 来源管理
-- 一键同步与冲突处理
-- 技能搜索与详情查看
-- 全局启用/禁用与状态反馈
+## Features
 
-## 下载安装
+- Multi-app skills directory management
+- Local directory and Git repository sources
+- One-click sync with conflict handling
+- Skill search and detail view
+- Global enable/disable state management
 
-1. 在 GitHub Releases 下载最新版本
-2. 解压并将 SkillDock.app 拖入「应用程序」
-3. 双击打开即可使用
+## Install
 
-如果首次打开被系统拦截，请到「系统设置 → 隐私与安全性」允许打开。
+1. Download the latest build from GitHub Releases.
+2. Unzip and move `SkillDock.app` to `Applications`.
+3. Open the app and start using it.
 
-## 使用方式
+If macOS blocks the first launch, allow it in `System Settings → Privacy & Security`.
 
-【前置准备】先在本地创建一个文件目录，把skill全部转移到至该目录下；
+## Usage
 
-1. 进入「来源管理」添加本地存放skill的目录（也支持通过 Git 地址添加）
-2. 切换左侧对应的应用目录下，点击「一键同步」写入对应应用的 skills 目录
-3. 在列表中搜索、查看详情或移除/清空
-4. 删除、清空只会清空该应用全局目录下的skill，最初创建的来源目录不受影响；
+Prerequisite: create a source directory and move your existing skills into this source directory before syncing.
 
-## 支持的应用与默认目录
+1. Open `Sources` and add your local skills directory (or add a Git repository source).
+2. Select an app from the left sidebar and click `Sync Now`.
+3. Search skills, open details, remove, or clear installed items as needed.
+4. `Remove/Clear All` only affects the selected app target directory, not your original source directory.
+
+Sync recovery tip: if `Sync Now` fails, click `Clear All` first, then run `Sync Now` again.
+
+## Supported Apps and Default Paths
 
 - Claude Code: `~/.claude/skills`
 - Codex: `~/.codex/skills`
 - OpenCode: `~/.config/opencode/skills`
 - Trae: `~/.trae/skills`
 - Trae CN: `~/.trae-cn/skills`
+- WorkBuddy: `~/.workbuddy/skills`
+- CodeBuddy: `~/.codebuddy/skills`
+- Aion UI: `~/.aionui-config/skills/`
+- Qoder: `~/.qoder/skills/`
 
-## 开发与构建
+## Development
 
-本项目使用 XcodeGen 生成项目文件。
+This project uses XcodeGen.
 
 ```bash
 xcodegen generate
 xcodebuild -project SkillDock.xcodeproj -scheme SkillDock build
 ```
 
-运行测试：
+Run tests:
 
 ```bash
 xcodebuild test -project SkillDock.xcodeproj -scheme SkillDock
 ```
 
-## 常见问题
+## FAQ
 
-**Q: 添加来源后列表为空？**  
-请确认来源目录内包含 `SKILL.md`，且目录未被系统隐藏。
+**Q: Why is the list empty after adding a source?**  
+Make sure the source directory contains `SKILL.md` files and is not hidden or inaccessible.
 
-**Q: 同步后应用未生效？**  
-请确认目标应用的 skills 目录存在，且当前用户对该目录有读写权限。
+**Q: Skills do not take effect after sync. Why?**  
+Confirm the target app skills directory exists and your current user has read/write permission.
 
+**Q: What should I do if one-click sync reports errors?**  
+In `Installed`, click `Clear All`, then run `Sync Now` again. Also make sure your personal skills were moved into your configured source directory before syncing.

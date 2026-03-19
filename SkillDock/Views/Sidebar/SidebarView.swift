@@ -5,22 +5,16 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("应用")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(Color(hex: "#adb5bd"))
-                .textCase(.uppercase)
-                .padding(.horizontal, 12)
-                .padding(.top, 4)
-
             VStack(spacing: 6) {
                 ForEach(AppTarget.allCases) { app in
                     Button {
                         viewModel.selectApp(app)
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: app.iconName)
-                                .font(.system(size: 13, weight: .medium))
-                                .frame(width: 16, height: 16)
+                            Image(app.iconAssetName)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 20, height: 20)
                             Text(app.displayName)
                                 .font(.system(size: 12, weight: .medium))
                                 .lineLimit(1)
@@ -40,6 +34,7 @@ struct SidebarView: View {
                     .buttonStyle(.plain)
                     .disabled(viewModel.isLoadingInstalledSkills)
                     .accessibilityIdentifier("app-target-\(app.rawValue)")
+                    .handCursorOnHover()
                 }
             }
 
@@ -48,18 +43,20 @@ struct SidebarView: View {
             VStack(spacing: 2) {
                 SidebarEntryView(
                     icon: "folder.fill.badge.gearshape",
-                    title: SidebarTab.sourceManagement.rawValue,
+                    title: viewModel.localized(key: "sidebar.sources", chinese: "来源管理", english: "Sources"),
                     badge: viewModel.sources.count,
-                    isActive: viewModel.selectedTab == .sourceManagement
+                    isActive: viewModel.selectedTab == .sourceManagement,
+                    accessibilityIdentifier: "sidebar-source-management"
                 ) {
                     viewModel.selectTab(.sourceManagement)
                 }
                 
                 SidebarEntryView(
                     icon: "gearshape.fill",
-                    title: SidebarTab.settings.rawValue,
+                    title: viewModel.localized(key: "sidebar.settings", chinese: "设置", english: "Settings"),
                     badge: nil,
-                    isActive: viewModel.selectedTab == .settings
+                    isActive: viewModel.selectedTab == .settings,
+                    accessibilityIdentifier: "sidebar-settings"
                 ) {
                     viewModel.selectTab(.settings)
                 }

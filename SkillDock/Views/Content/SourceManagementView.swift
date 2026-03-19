@@ -27,7 +27,7 @@ struct SourceManagementView: View {
 
     private var header: some View {
         HStack {
-            Text("来源管理")
+            Text(t("source.header.title", "来源管理", "Sources"))
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(Color(hex: "#212529"))
             Spacer()
@@ -45,7 +45,7 @@ struct SourceManagementView: View {
     private var localSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("本地目录")
+                Text(t("source.section.local", "本地目录", "Local Directories"))
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Color(hex: "#495057"))
                 Spacer()
@@ -54,7 +54,7 @@ struct SourceManagementView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus")
-                        Text("添加目录")
+                        Text(t("source.action.addDirectory", "添加目录", "Add Directory"))
                     }
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(Color(hex: "#4c6ef5"))
@@ -64,12 +64,13 @@ struct SourceManagementView: View {
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
+                .handCursorOnHover()
             }
             
             VStack(spacing: 8) {
                 let localSources = viewModel.sources.filter { $0.type == .local }
                 if localSources.isEmpty {
-                    emptyRow(text: "暂无本地目录")
+                    emptyRow(text: t("source.empty.local", "暂无本地目录", "No local directories"))
                 } else {
                     ForEach(localSources) { source in
                         SourceRowView(source: source)
@@ -82,7 +83,7 @@ struct SourceManagementView: View {
     private var gitSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Git 仓库")
+                Text(t("source.section.git", "Git 仓库", "Git Repositories"))
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Color(hex: "#495057"))
                 Spacer()
@@ -92,7 +93,7 @@ struct SourceManagementView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.clockwise")
-                            Text("一键更新")
+                            Text(t("source.action.updateAll", "一键更新", "Update All"))
                         }
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(Color(hex: "#495057"))
@@ -103,13 +104,14 @@ struct SourceManagementView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!viewModel.activeGitSourceIDs.isEmpty)
+                    .handCursorOnHover()
                     
                     Button {
                         showingAddGitModal = true
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "plus")
-                            Text("添加仓库")
+                            Text(t("source.action.addRepository", "添加仓库", "Add Repository"))
                         }
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(Color(hex: "#4c6ef5"))
@@ -119,6 +121,7 @@ struct SourceManagementView: View {
                         .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
+                    .handCursorOnHover()
                 }
             }
             
@@ -143,7 +146,7 @@ struct SourceManagementView: View {
                 }
                 let gitSources = viewModel.sources.filter { $0.type == .git }
                 if gitSources.isEmpty {
-                    emptyRow(text: "暂无 Git 仓库")
+                    emptyRow(text: t("source.empty.git", "暂无 Git 仓库", "No Git repositories"))
                 } else {
                     ForEach(gitSources) { source in
                         SourceRowView(source: source)
@@ -163,7 +166,7 @@ struct SourceManagementView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "#fa5252"))
-                Text("有来源暂不可用")
+                Text(t("source.banner.unavailable", "有来源暂不可用", "Some sources are unavailable"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Color(hex: "#c92a2a"))
             }
@@ -196,6 +199,16 @@ struct SourceManagementView: View {
     }
 }
 
+private extension SourceManagementView {
+    func t(_ chinese: String, _ english: String) -> String {
+        viewModel.localized(chinese: chinese, english: english)
+    }
+
+    func t(_ key: String, _ chinese: String, _ english: String) -> String {
+        viewModel.localized(key: key, chinese: chinese, english: english)
+    }
+}
+
 struct SourceRowView: View {
     @EnvironmentObject private var viewModel: MainViewModel
     let source: Source
@@ -216,7 +229,7 @@ struct SourceRowView: View {
                     HStack(spacing: 6) {
                         ProgressView()
                             .controlSize(.small)
-                        Text("处理中...")
+                        Text(viewModel.localized(key: "source.row.processing", chinese: "处理中...", english: "Processing..."))
                             .font(.system(size: 11))
                             .foregroundColor(Color(hex: "#364fc7"))
                     }
@@ -241,6 +254,7 @@ struct SourceRowView: View {
                                 .foregroundColor(Color(hex: "#4c6ef5"))
                         }
                         .buttonStyle(.plain)
+                        .handCursorOnHover()
                     }
                     
                     if !source.isAvailable {
@@ -252,17 +266,19 @@ struct SourceRowView: View {
                                 .foregroundColor(Color(hex: "#fa5252"))
                         }
                         .buttonStyle(.plain)
+                        .handCursorOnHover()
                     }
                     
                     if !source.isBuiltIn {
                         Button {
                             viewModel.removeSource(source)
                         } label: {
-                            Text("删除")
+                            Text(viewModel.localized(key: "source.action.delete", chinese: "删除", english: "Delete"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(Color(hex: "#fa5252"))
                         }
                         .buttonStyle(.plain)
+                        .handCursorOnHover()
                     }
                 }
                 .transition(.opacity)
@@ -293,7 +309,7 @@ struct AddGitSourceModal: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("添加 Git 仓库")
+                Text(viewModel.localized(key: "source.modal.title", chinese: "添加 Git 仓库", english: "Add Git Repository"))
                     .font(.system(size: 18, weight: .bold))
                 Spacer()
                 Button {
@@ -303,10 +319,11 @@ struct AddGitSourceModal: View {
                         .foregroundColor(Color(hex: "#adb5bd"))
                 }
                 .buttonStyle(.plain)
+                .handCursorOnHover()
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("仓库地址:")
+                Text(viewModel.localized(key: "source.modal.repoUrl", chinese: "仓库地址:", english: "Repository URL:"))
                     .font(.system(size: 13, weight: .medium))
                 TextField("https://github.com/...", text: $viewModel.gitRepoInput)
                     .textFieldStyle(.plain)
@@ -316,7 +333,7 @@ struct AddGitSourceModal: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("分支 (可选):")
+                Text(viewModel.localized(key: "source.modal.branchOptional", chinese: "分支 (可选):", english: "Branch (Optional):"))
                     .font(.system(size: 13, weight: .medium))
                 TextField("main", text: $viewModel.gitBranchInput)
                     .textFieldStyle(.plain)
@@ -329,7 +346,7 @@ struct AddGitSourceModal: View {
                 Button {
                     isPresented = false
                 } label: {
-                    Text("取消")
+                    Text(viewModel.localized(key: "common.cancel", chinese: "取消", english: "Cancel"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(Color(hex: "#868e96"))
                         .frame(maxWidth: .infinity)
@@ -338,12 +355,13 @@ struct AddGitSourceModal: View {
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
+                .handCursorOnHover()
                 
                 Button {
                     viewModel.addGitSourceFromInput()
                     isPresented = false
                 } label: {
-                    Text("添加")
+                    Text(viewModel.localized(key: "common.add", chinese: "添加", english: "Add"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -352,6 +370,7 @@ struct AddGitSourceModal: View {
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
+                .handCursorOnHover()
             }
         }
         .padding(24)

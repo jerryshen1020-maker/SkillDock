@@ -1,9 +1,19 @@
 import SwiftUI
 
 struct SkillCardView: View {
+    enum ActionStyle {
+        case install
+        case remove
+        case installed
+    }
+
     let skill: Skill
-    let appName: String
-    let onRemove: () -> Void
+    let contextLabel: String
+    let actionTitle: String
+    let actionStyle: ActionStyle
+    let isActionEnabled: Bool
+    let detailsTitle: String
+    let onAction: () -> Void
     let onDetails: () -> Void
 
     @State private var isHovering = false
@@ -32,16 +42,22 @@ struct SkillCardView: View {
                         .truncationMode(.middle)
                 }
                 Spacer()
-                Button("移除") {
-                    onRemove()
+                Button(actionTitle) {
+                    onAction()
                 }
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(Color(hex: "#adb5bd"))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(isHovering ? Color(hex: "#fff5f5") : .clear)
+                .foregroundColor(actionForegroundColor)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(actionBackgroundColor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(actionBorderColor, lineWidth: 1)
+                )
                 .cornerRadius(8)
+                .disabled(!isActionEnabled)
+                .handCursorOnHover()
             }
 
             Text(skill.description)
@@ -50,7 +66,7 @@ struct SkillCardView: View {
                 .lineLimit(2)
 
             HStack {
-                Text(appName)
+                Text(contextLabel)
                     .font(.system(size: 11))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -58,12 +74,13 @@ struct SkillCardView: View {
                     .foregroundColor(Color(hex: "#4c6ef5"))
                     .clipShape(Capsule())
                 Spacer()
-                Button("详情 →") {
+                Button(detailsTitle) {
                     onDetails()
                 }
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(Color(hex: UIStyleConstants.primaryColorHex))
+                .handCursorOnHover()
             }
         }
         .padding(16)
@@ -78,5 +95,47 @@ struct SkillCardView: View {
         .offset(y: isHovering ? -2 : 0)
         .animation(.easeOut(duration: 0.18), value: isHovering)
         .onHover { isHovering = $0 }
+    }
+
+    private var actionForegroundColor: Color {
+        if !isActionEnabled {
+            return Color(hex: "#adb5bd")
+        }
+        switch actionStyle {
+        case .install:
+            return .white
+        case .remove:
+            return Color(hex: "#e03131")
+        case .installed:
+            return Color(hex: "#495057")
+        }
+    }
+
+    private var actionBackgroundColor: Color {
+        if !isActionEnabled {
+            return Color(hex: "#f1f3f5")
+        }
+        switch actionStyle {
+        case .install:
+            return isHovering ? Color(hex: "#364fc7") : Color(hex: "#4c6ef5")
+        case .remove:
+            return isHovering ? Color(hex: "#ffe3e3") : Color(hex: "#fff5f5")
+        case .installed:
+            return Color(hex: "#f1f3f5")
+        }
+    }
+
+    private var actionBorderColor: Color {
+        if !isActionEnabled {
+            return Color(hex: "#e9ecef")
+        }
+        switch actionStyle {
+        case .install:
+            return Color(hex: "#4c6ef5")
+        case .remove:
+            return Color(hex: "#ffc9c9")
+        case .installed:
+            return Color(hex: "#dee2e6")
+        }
     }
 }

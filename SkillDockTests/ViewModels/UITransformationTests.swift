@@ -79,8 +79,11 @@ final class UITransformationTests: XCTestCase {
 
     func testAC_7_1_002AllAppTargetsExposeDisplayName() {
         let names = AppTarget.allCases.map(\.displayName)
-        XCTAssertEqual(names.count, 5)
-        XCTAssertEqual(names, ["Claude Code", "Codex", "OpenCode", "Trae", "Trae CN"])
+        XCTAssertEqual(names.count, 9)
+        XCTAssertEqual(
+            names,
+            ["Claude Code", "Codex", "OpenCode", "Trae", "Trae CN", "WorkBuddy", "CodeBuddy", "Aion UI", "Qoder"]
+        )
     }
 
     private func makeTempDirectory() throws -> URL {

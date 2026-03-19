@@ -56,6 +56,143 @@ final class MainViewModelSourcesTests: XCTestCase {
         XCTAssertEqual(persisted.themeMode, .dark)
     }
 
+    func testLoadRestoresSkillViewModeAndLanguageFromConfig() throws {
+        let suiteName = "MainViewModelSourcesTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("unable to create user defaults suite")
+            return
+        }
+        userDefaults.removePersistentDomain(forName: suiteName)
+        defer { userDefaults.removePersistentDomain(forName: suiteName) }
+
+        let config = AppConfig(
+            sources: [],
+            selectedApp: .claudeCode,
+            selectedPage: .skills,
+            themeMode: .system,
+            skillViewMode: .sourceRepository,
+            language: .chinese,
+            legacySkillStates: [:]
+        )
+        ConfigManager(userDefaults: userDefaults).saveAppConfig(config)
+
+        let viewModel = MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            autoLoad: false
+        )
+
+        viewModel.load()
+
+        XCTAssertEqual(viewModel.skillViewMode, .sourceRepository)
+        XCTAssertEqual(viewModel.language, .chinese)
+    }
+
+    func testSetSkillViewModeAndLanguagePersistToConfig() throws {
+        let suiteName = "MainViewModelSourcesTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("unable to create user defaults suite")
+            return
+        }
+        userDefaults.removePersistentDomain(forName: suiteName)
+        defer { userDefaults.removePersistentDomain(forName: suiteName) }
+
+        let viewModel = MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            autoLoad: false
+        )
+        viewModel.load()
+
+        viewModel.selectSkillViewMode(.sourceRepository)
+        viewModel.setLanguage(.chinese)
+
+        XCTAssertEqual(viewModel.skillViewMode, .sourceRepository)
+        XCTAssertEqual(viewModel.language, .chinese)
+        let persisted = ConfigManager(userDefaults: userDefaults).loadAppConfig()
+        XCTAssertEqual(persisted.skillViewMode, .sourceRepository)
+        XCTAssertEqual(persisted.language, .chinese)
+    }
+
+    func testSourceRepositoryModeDisplaysOnlyNonBuiltInSourceSkills() throws {
+        let suiteName = "MainViewModelSourcesTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("unable to create user defaults suite")
+            return
+        }
+        userDefaults.removePersistentDomain(forName: suiteName)
+
+        let sourceRoot = try makeTempDirectory()
+        let targetRootURL = try makeTempDirectory()
+        try makeSkillFolder(root: sourceRoot, folderName: "repo-only-skill")
+        try makeSkillFolder(root: targetRootURL, folderName: "installed-only-skill")
+        defer {
+            try? FileManager.default.removeItem(at: sourceRoot)
+            try? FileManager.default.removeItem(at: targetRootURL)
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let viewModel = MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            appSkillsPathResolver: { _ in targetRootURL.path },
+            autoLoad: false
+        )
+        viewModel.load()
+        XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
+
+        viewModel.selectSkillViewMode(.sourceRepository)
+
+        XCTAssertEqual(viewModel.displayedSkills.count, 1)
+        XCTAssertEqual(viewModel.displayedSkills.first?.folderName, "repo-only-skill")
+    }
+
+    func testInstallSkillFromRepositoryCreatesSymlink() throws {
+        let suiteName = "MainViewModelSourcesTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("unable to create user defaults suite")
+            return
+        }
+        userDefaults.removePersistentDomain(forName: suiteName)
+
+        let sourceRoot = try makeTempDirectory()
+        let targetRootURL = try makeTempDirectory()
+        let folderName = "installable-\(UUID().uuidString)"
+        try makeSkillFolder(root: sourceRoot, folderName: folderName)
+        defer {
+            try? FileManager.default.removeItem(at: sourceRoot)
+            try? FileManager.default.removeItem(at: targetRootURL)
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let viewModel = MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            appSkillsPathResolver: { _ in targetRootURL.path },
+            autoLoad: false
+        )
+        viewModel.load()
+        XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
+        viewModel.selectSkillViewMode(.sourceRepository)
+
+        guard let skill = viewModel.displayedSkills.first(where: { $0.folderName == folderName }) else {
+            XCTFail("missing repository skill")
+            return
+        }
+
+        viewModel.installSkillFromRepository(skill)
+        viewModel.selectSkillViewMode(.installedOnly)
+
+        let targetPath = targetRootURL.appendingPathComponent(folderName, isDirectory: true).path
+        let fileType = try FileManager.default.attributesOfItem(atPath: targetPath)[.type] as? FileAttributeType
+        XCTAssertEqual(fileType, .typeSymbolicLink)
+        XCTAssertTrue(viewModel.skills.contains { $0.folderName == folderName })
+    }
+
     func testLoadRestoresSelectedAppFromConfig() throws {
         let suiteName = "MainViewModelSourcesTests-\(UUID().uuidString)"
         guard let userDefaults = UserDefaults(suiteName: suiteName) else {
@@ -150,7 +287,7 @@ final class MainViewModelSourcesTests: XCTestCase {
 
         XCTAssertEqual(viewModel.selectedAppName, "Trae CN")
         XCTAssertEqual(viewModel.selectedApp, .traeCN)
-        XCTAssertEqual(viewModel.message, "已切换应用：Trae CN")
+        XCTAssertNil(viewModel.message)
     }
 
     func testAC_7_4_001SetThemeModePersistsAndShowsFeedback() throws {
@@ -173,7 +310,7 @@ final class MainViewModelSourcesTests: XCTestCase {
         viewModel.setThemeMode(.light)
 
         XCTAssertEqual(viewModel.themeMode, .light)
-        XCTAssertEqual(viewModel.message, "主题已切换为浅色")
+        XCTAssertEqual(viewModel.message, "Theme changed to Light")
         XCTAssertEqual(ConfigManager(userDefaults: userDefaults).loadAppConfig().themeMode, .light)
     }
 
@@ -223,7 +360,7 @@ final class MainViewModelSourcesTests: XCTestCase {
         XCTAssertEqual(URL(fileURLWithPath: linkedPath).standardizedFileURL.path, URL(fileURLWithPath: skillFolderPath).standardizedFileURL.path)
     }
 
-    func testSyncSkillsSkipsNonSymlinkConflictAndContinues() throws {
+    func testSyncSkillsReplacesExistingDirectoryAndContinues() throws {
         let suiteName = "MainViewModelSourcesTests-\(UUID().uuidString)"
         guard let userDefaults = UserDefaults(suiteName: suiteName) else {
             XCTFail("unable to create user defaults suite")
@@ -264,10 +401,44 @@ final class MainViewModelSourcesTests: XCTestCase {
         let normalType = try fileManager.attributesOfItem(atPath: normalTargetPath)[.type] as? FileAttributeType
         XCTAssertEqual(normalType, .typeSymbolicLink)
         let conflictType = try fileManager.attributesOfItem(atPath: conflictTargetURL.path)[.type] as? FileAttributeType
-        XCTAssertEqual(conflictType, .typeDirectory)
-        XCTAssertTrue(viewModel.message?.contains("跳过 1 个冲突项") == true)
-        XCTAssertEqual(viewModel.latestSyncDiagnostics?.skippedFolderNames.count, 1)
-        XCTAssertEqual(viewModel.latestSyncDiagnostics?.fatalError, nil)
+        XCTAssertEqual(conflictType, .typeSymbolicLink)
+        XCTAssertNil(viewModel.latestSyncDiagnostics)
+    }
+
+    func testSwitchAppClearsSyncDiagnosticsFromPreviousApp() throws {
+        let suiteName = "MainViewModelSourcesTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("unable to create user defaults suite")
+            return
+        }
+        userDefaults.removePersistentDomain(forName: suiteName)
+
+        let sourceRoot = try makeTempDirectory()
+        try makeSkillFolder(root: sourceRoot, folderName: "diag-\(UUID().uuidString)")
+        defer {
+            try? FileManager.default.removeItem(at: sourceRoot)
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let viewModel = MainViewModel(
+            configManager: ConfigManager(userDefaults: userDefaults),
+            skillScanner: SkillScanner(),
+            fileService: FileService(),
+            appSkillsPathResolver: { _ in "/dev/null/skills" },
+            autoLoad: false
+        )
+        viewModel.load()
+        viewModel.selectApp(.codeBuddy)
+        XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
+
+        viewModel.syncSkills()
+
+        XCTAssertNotNil(viewModel.latestSyncDiagnostics)
+        XCTAssertEqual(viewModel.latestSyncDiagnostics?.app, .codeBuddy)
+
+        viewModel.selectApp(.codex)
+
+        XCTAssertNil(viewModel.latestSyncDiagnostics)
     }
 
     func testAddSourceScansSkillsAndPersistsSource() throws {
@@ -547,7 +718,7 @@ final class MainViewModelSourcesTests: XCTestCase {
             displayName: "missing",
             type: .local,
             isAvailable: false,
-            lastError: "目录不存在"
+            lastError: "Directory not found"
         )
         ConfigManager(userDefaults: userDefaults).saveAppConfig(AppConfig(sources: [source]))
         let viewModel = MainViewModel(
@@ -569,7 +740,7 @@ final class MainViewModelSourcesTests: XCTestCase {
             return
         }
         XCTAssertFalse(refreshed.isAvailable)
-        XCTAssertEqual(refreshed.lastError, "目录不存在")
+        XCTAssertEqual(refreshed.lastError, "Directory not found")
     }
 
     func testExportSyncDiagnosticsShowsPermissionDeniedMessage() throws {
@@ -581,14 +752,10 @@ final class MainViewModelSourcesTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suiteName)
 
         let sourceRoot = try makeTempDirectory()
-        let targetRootURL = try makeTempDirectory()
         let conflictFolder = "permission-\(UUID().uuidString)"
         try makeSkillFolder(root: sourceRoot, folderName: conflictFolder)
-        let conflictTargetURL = targetRootURL.appendingPathComponent(conflictFolder, isDirectory: true)
-        try FileManager.default.createDirectory(at: conflictTargetURL, withIntermediateDirectories: true)
         defer {
             try? FileManager.default.removeItem(at: sourceRoot)
-            try? FileManager.default.removeItem(at: targetRootURL)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
@@ -597,17 +764,18 @@ final class MainViewModelSourcesTests: XCTestCase {
             configManager: ConfigManager(userDefaults: userDefaults),
             skillScanner: SkillScanner(),
             fileService: fileService,
-            appSkillsPathResolver: { _ in targetRootURL.path },
+            appSkillsPathResolver: { _ in "/dev/null/skills" },
             autoLoad: false
         )
         viewModel.load()
         viewModel.selectApp(.codex)
         XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
         viewModel.syncSkills()
+        XCTAssertNotNil(viewModel.latestSyncDiagnostics)
 
         viewModel.exportLatestSyncDiagnostics()
 
-        XCTAssertEqual(viewModel.message, "哎呀，没有写入权限，请选择其他目录")
+        XCTAssertEqual(viewModel.message, "Oops, no write permission, please choose another folder")
     }
 
     func testExportSyncDiagnosticsShowsWriteFailureMessage() throws {
@@ -619,14 +787,10 @@ final class MainViewModelSourcesTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suiteName)
 
         let sourceRoot = try makeTempDirectory()
-        let targetRootURL = try makeTempDirectory()
         let conflictFolder = "write-\(UUID().uuidString)"
         try makeSkillFolder(root: sourceRoot, folderName: conflictFolder)
-        let conflictTargetURL = targetRootURL.appendingPathComponent(conflictFolder, isDirectory: true)
-        try FileManager.default.createDirectory(at: conflictTargetURL, withIntermediateDirectories: true)
         defer {
             try? FileManager.default.removeItem(at: sourceRoot)
-            try? FileManager.default.removeItem(at: targetRootURL)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
@@ -635,17 +799,18 @@ final class MainViewModelSourcesTests: XCTestCase {
             configManager: ConfigManager(userDefaults: userDefaults),
             skillScanner: SkillScanner(),
             fileService: fileService,
-            appSkillsPathResolver: { _ in targetRootURL.path },
+            appSkillsPathResolver: { _ in "/dev/null/skills" },
             autoLoad: false
         )
         viewModel.load()
         viewModel.selectApp(.codex)
         XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
         viewModel.syncSkills()
+        XCTAssertNotNil(viewModel.latestSyncDiagnostics)
 
         viewModel.exportLatestSyncDiagnostics()
 
-        XCTAssertEqual(viewModel.message, "哎呀，写入失败，请稍后重试")
+        XCTAssertEqual(viewModel.message, "Oops, failed to write file, please try again")
     }
 
     private func makeTempDirectory() throws -> URL {

@@ -16,6 +16,8 @@ final class AppConfigTests: XCTestCase {
             selectedApp: .codex,
             selectedPage: .sourceManagement,
             themeMode: .dark,
+            skillViewMode: .sourceRepository,
+            language: .chinese,
             legacySkillStates: ["x#brainstorming": true]
         )
 
@@ -59,6 +61,8 @@ final class AppConfigTests: XCTestCase {
         XCTAssertEqual(config.selectedApp, .claudeCode)
         XCTAssertEqual(config.selectedPage, .skills)
         XCTAssertEqual(config.themeMode, .system)
+        XCTAssertEqual(config.skillViewMode, .installedOnly)
+        XCTAssertEqual(config.language, .english)
         XCTAssertEqual(config.sources.count, 1)
         XCTAssertEqual(config.legacySkillStates["/tmp/skills#brainstorming"], true)
         XCTAssertEqual(config.sources.first?.type, .local)
@@ -72,5 +76,13 @@ final class AppConfigTests: XCTestCase {
         let id = Skill.makeID(sourcePath: "/a/b", folderName: "brainstorming")
 
         XCTAssertEqual(id, "/a/b#brainstorming")
+    }
+
+    func testAppTargetIncludesV15NewTargetsAndDefaultPaths() {
+        XCTAssertEqual(AppTarget.allCases.count, 9)
+        XCTAssertEqual(AppTarget.workBuddy.defaultSkillsPath, "~/.workbuddy/skills/")
+        XCTAssertEqual(AppTarget.codeBuddy.defaultSkillsPath, "~/.codebuddy/skills/")
+        XCTAssertEqual(AppTarget.aionUI.defaultSkillsPath, "~/.aionui-config/skills/")
+        XCTAssertEqual(AppTarget.qoder.defaultSkillsPath, "~/.qoder/skills/")
     }
 }

@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 extension Color {
     init(hex: String) {
@@ -24,5 +27,29 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+#if os(macOS)
+private struct HandCursorOnHoverModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content.onHover { isHovering in
+            if isHovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+}
+#endif
+
+extension View {
+    func handCursorOnHover() -> some View {
+        #if os(macOS)
+        return modifier(HandCursorOnHoverModifier())
+        #else
+        return self
+        #endif
     }
 }

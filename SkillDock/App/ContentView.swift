@@ -12,15 +12,12 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 SidebarView()
                 content
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .move(edge: .trailing)),
-                        removal: .opacity
-                    ))
+                    .transition(.opacity)
                     .id("\(viewModel.selectedApp.id)-\(viewModel.selectedTab.id)")
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: viewModel.selectedApp)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: viewModel.selectedTab)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.selectedApp)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.selectedTab)
         .frame(minWidth: 900, minHeight: 600)
         .background(Color(hex: "#fafbfc"))
         .onAppear {
@@ -91,7 +88,7 @@ struct ContentView: View {
             Spacer()
             ZStack(alignment: .leading) {
                 if viewModel.searchText.isEmpty {
-                    Text("搜索 skills...")
+                    Text(viewModel.localized(key: "topbar.search.placeholder", chinese: "搜索 skills...", english: "Search skills..."))
                         .font(.system(size: 13))
                         .foregroundColor(Color(hex: "#adb5bd"))
                         .padding(.leading, 36)
@@ -188,10 +185,20 @@ private enum ToastKind {
     }
 
     static func resolve(from message: String) -> ToastKind {
-        if message.contains("哎呀") || message.contains("失败") || message.contains("错误") {
+        if message.contains("哎呀")
+            || message.contains("失败")
+            || message.contains("错误")
+            || message.localizedCaseInsensitiveContains("oops")
+            || message.localizedCaseInsensitiveContains("failed")
+            || message.localizedCaseInsensitiveContains("error") {
             return .error
         }
-        if message.contains("取消") || message.contains("冲突") || message.contains("暂无") {
+        if message.contains("取消")
+            || message.contains("冲突")
+            || message.contains("暂无")
+            || message.localizedCaseInsensitiveContains("cancel")
+            || message.localizedCaseInsensitiveContains("conflict")
+            || message.localizedCaseInsensitiveContains("no ") {
             return .warning
         }
         return .success

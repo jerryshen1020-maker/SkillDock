@@ -32,7 +32,7 @@ final class SyncFlowTests: XCTestCase {
 
         XCTAssertNil(viewModel.pendingSyncPreview)
         XCTAssertEqual(Set(viewModel.skills.map(\.folderName)), Set(["alpha", "beta"]))
-        XCTAssertTrue(viewModel.message?.hasPrefix("同步完成：新增 1 个，移除 0 个") == true)
+        XCTAssertTrue(viewModel.message?.hasPrefix("Sync completed: added 1, removed 0") == true)
     }
 
     func testSyncDetectsFolderNameConflictsAcrossSources() throws {
@@ -161,7 +161,7 @@ final class SyncFlowTests: XCTestCase {
 
         viewModel.syncSkills()
 
-        XCTAssertTrue(viewModel.message?.contains("扫描失败") == true)
+        XCTAssertTrue(viewModel.message?.contains("Failed to scan") == true)
     }
 
     private func makeViewModel(userDefaults: UserDefaults, appSkillsPath: String) -> MainViewModel {

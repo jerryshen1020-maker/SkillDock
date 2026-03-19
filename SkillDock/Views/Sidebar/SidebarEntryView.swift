@@ -5,6 +5,7 @@ struct SidebarEntryView: View {
     let title: String
     let badge: Int?
     let isActive: Bool
+    let accessibilityIdentifier: String
     let action: () -> Void
 
     @State private var isHovering = false
@@ -37,7 +38,9 @@ struct SidebarEntryView: View {
             .cornerRadius(10)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
         .onHover { isHovering = $0 }
+        .handCursorOnHover()
     }
 
     private var backgroundColor: Color {
