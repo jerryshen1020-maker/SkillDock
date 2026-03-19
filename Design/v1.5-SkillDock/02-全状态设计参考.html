@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillDock v1.5 全状态设计参考</title>
+    <style>
+        :root {
+            --bg-primary: #fafbfc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f5;
+            --bg-hover: #e9ecef;
+
+            --text-primary: #212529;
+            --text-secondary: #868e96;
+            --text-tertiary: #adb5bd;
+
+            --accent: #4c6ef5;
+            --accent-hover: #364fc7;
+            --accent-light: #e7f5ff;
+
+            --border: #dee2e6;
+            --border-light: #f1f3f5;
+
+            --success: #40c057;
+            --warning: #fab005;
+            --error: #fa5252;
+            --error-light: #fff5f5;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-xl);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-md);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .state-group {
+            margin-bottom: var(--space-xl);
+        }
+
+        .state-group-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+            color: var(--accent);
+        }
+
+        .state-item {
+            margin-bottom: var(--space-lg);
+            padding: var(--space-lg);
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+        }
+
+        .state-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .state-preview {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            margin-top: var(--space-sm);
+        }
+
+        .state-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: var(--space-sm);
+        }
+
+        /* 交互规则表格 */
+        .interaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .interaction-table th {
+            background: var(--bg-tertiary);
+            padding: var(--space-sm) var(--space-md);
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .interaction-table td {
+            padding: var(--space-sm) var(--space-md);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .interaction-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Toast 样式 */
+        .toast-demo {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+            padding: var(--space-lg);
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+        }
+
+        .toast {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: white;
+            max-width: 300px;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.warning { background: var(--warning); }
+        .toast.error { background: var(--error); }
+
+        /* 目录 */
+        .toc {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-xl);
+        }
+
+        .toc-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-list li {
+            padding: var(--space-xs) 0;
+        }
+
+        .toc-list a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .toc-list a:hover {
+            text-decoration: underline;
+        }
+
+        /* 标签 */
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .tag.new { background: var(--accent-light); color: var(--accent); }
+        .tag.changed { background: var(--warning); color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SkillDock v1.5 全状态设计参考</h1>
+        <p class="subtitle">版本: v1.5 | 日期: 2026-03-18 | 设计规范: v1.3-ui-specs.md</p>
+
+        <!-- 目录 -->
+        <div class="toc">
+            <div class="toc-title">目录</div>
+            <ul class="toc-list">
+                <li><a href="#section-1">1. Skills 页面状态</a></li>
+                <li><a href="#section-2">2. 分类 Tab 交互</a></li>
+                <li><a href="#section-3">3. 来源管理页面状态</a></li>
+                <li><a href="#section-4">4. 设置页面状态</a></li>
+                <li><a href="#section-5">5. Toast 反馈规范</a></li>
+                <li><a href="#section-6">6. 确认弹窗规范</a></li>
+                <li><a href="#section-7">7. 交互行为规则表</a></li>
+            </ul>
+        </div>
+
+        <!-- 1. Skills 页面状态 -->
+        <div class="section" id="section-1">
+            <h2 class="section-title">1. Skills 页面状态</h2>
+
+            <div class="state-group">
+                <div class="state-group-title">已安装 - 正常态</div>
+                <div class="state-item">
+                    <div class="state-label">状态描述</div>
+                    <div class="state-description">
+                        当前应用已安装技能列表，有数据时显示。Tab 显示"已安装"为激活态，"清空全部"按钮可见。
+                    </div>
+                    <div class="state-preview">
+                        <pre style="font-size: 12px; color: var(--text-secondary);">
+┌─────────────────────────────────────────────────────────────┐
+│ Claude Code - Skills 共 5 个        [清空全部][一键同步]  │
+│ [已安装] [本地仓库]                                          │
+├─────────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────┐            │
+│ │ 🧠 brainstorming              [移除]        │            │
+│ │ 来源: ~/.claude/skills                        │            │
+│ │ 帮助把想法变成完整的设计和规格...             │            │
+│ │ [Claude Code]                                │            │
+│ └─────────────────────────────────────────────┘            │
+└─────────────────────────────────────────────────────────────┘
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">已安装 - 空态 <span class="tag new">NEW</span></div>
+                <div class="state-item">
+                    <div class="state-label">状态描述</div>
+                    <div class="state-description">
+                        当前应用目标目录为空，显示空态引导。文案提示用户可切换到"本地仓库"查看可用技能。
+                    </div>
+                    <div class="state-preview">
+                        <pre style="font-size: 12px; color: var(--text-secondary);">
+┌─────────────────────────────────────────────────────────────┐
+│ Claude Code - Skills 共 0 个               [一键同步]      │
+│ [已安装] [本地仓库]                                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│                      📭                                     │
+│               暂无已安装的 Skill                            │
+│   切换到「本地仓库」查看可用技能，                          │
+│   或点击「一键同步」从来源目录安装                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">已安装 - 加载态</div>
+                <div class="state-item">
+                    <div class="state-label">状态描述</div>
+                    <div class="state-description">
+                        切换应用后，正在加载目标目录中的技能。显示 loading 指示器和提示文案。
+                    </div>
+                    <div class="state-preview">
+                        <pre style="font-size: 12px; color: var(--text-secondary);">
+┌─────────────────────────────────────────────────────────────┐
+│ WorkBuddy - Skills                 [清空全部][一键同步]  │
+│ [已安装] [本地仓库]                                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│                    [⏳]                                     │
+│            正在加载已安装的 Skill...                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">本地仓库 - 正常态 <span class="tag new">NEW</span></div>
+                <div class="state-item">
+                    <div class="state-label">状态描述</div>
+                    <div class="state-description">
+                        显示所有来源目录扫描到的技能。已安装的显示"已安装"标签，未安装的显示"安装"按钮。
+                    </div>
+                    <div class="state-preview">
+                        <pre style="font-size: 12px; color: var(--text-secondary);">
+┌─────────────────────────────────────────────────────────────┐
+│ 本地仓库 - Skills 共 12 个                                  │
+│ [已安装] [本地仓库]                                          │
+├─────────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────┐            │
+│ │ 🧠 brainstorming              [安装]        │            │
+│ │ 来源: ~/.claude/skills                        │            │
+│ │ 帮助把想法变成完整的设计和规格...             │            │
+│ │ [已安装]                                     │            │
+│ └─────────────────────────────────────────────┘            │
+│ ┌─────────────────────────────────────────────┐            │
+│ │ 📝 commit                     [安装]        │            │
+│ │ 来源: ~/Documents/MySkills                    │            │
+│ │ 生成规范的 Git 提交信息...                    │            │
+│ │ [未安装]                                     │            │
+│ └─────────────────────────────────────────────┘            │
+└─────────────────────────────────────────────────────────────┘
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">本地仓库 - 空态 <span class="tag new">NEW</span></div>
+                <div class="state-item">
+                    <div class="state-label">状态描述</div>
+                    <div class="state-description">
+                        未配置任何来源目录，或来源目录扫描无结果。引导用户添加来源。
+                    </div>
+                    <div class="state-preview">
+                        <pre style="font-size: 12px; color: var(--text-secondary);">
+┌─────────────────────────────────────────────────────────────┐
+│ 本地仓库 - Skills 共 0 个                                   │
+│ [已安装] [本地仓库]                                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│                      📦                                     │
+│               暂无可用的 Skill                              │
+│   请先在「来源管理」中添加本地目录或 Git 仓库               │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 分类 Tab 交互 -->
+        <div class="section" id="section-2">
+            <h2 class="section-title">2. 分类 Tab 交互 <span class="tag new">NEW</span></h2>
+
+            <div class="state-group">
+                <div class="state-group-title">Tab 位置与样式</div>
+                <div class="state-item">
+                    <div class="state-label">设计规范</div>
+                    <div class="state-description">
+                        <ul>
+                            <li><strong>位置</strong>：Content Header 内部，title 下方，skill 列表上方</li>
+                            <li><strong>默认态</strong>：灰色背景 `var(--bg-tertiary)`，圆角 `6px`</li>
+                            <li><strong>激活态</strong>：蓝色背景 `var(--accent)`，白色文字</li>
+                            <li><strong>Hover 态</strong>：背景变为 `var(--bg-hover)`</li>
+                            <li><strong>间距</strong>：Tab 之间间距 `8px`</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">Tab 切换行为</div>
+                <div class="state-item">
+                    <div class="state-label">交互规则</div>
+                    <div class="state-description">
+                        <ul>
+                            <li>点击"已安装"：显示当前应用目标目录中的技能</li>
+                            <li>点击"本地仓库"：显示所有来源目录扫描到的技能</li>
+                            <li>Tab 状态独立存储，切换应用时保持当前选择的分类</li>
+                            <li>本地仓库中已安装的技能显示"已安装"标签</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 来源管理页面状态 -->
+        <div class="section" id="section-3">
+            <h2 class="section-title">3. 来源管理页面状态</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                与 v1.3 保持一致，无变更。
+            </p>
+        </div>
+
+        <!-- 4. 设置页面状态 -->
+        <div class="section" id="section-4">
+            <h2 class="section-title">4. 设置页面状态 <span class="tag changed">CHANGED</span></h2>
+
+            <div class="state-group">
+                <div class="state-group-title">设置 - 正常态</div>
+                <div class="state-item">
+                    <div class="state-label">页面结构</div>
+                    <div class="state-description">
+                        <ul>
+                            <li><strong>版本信息</strong>：SkillDock v1.5.0</li>
+                            <li><strong>语言设置</strong>：单选按钮（简体中文 / English）</li>
+                            <li><strong>移除</strong>：应用主题模块（已跟随系统）</li>
+                        </ul>
+                    </div>
+                    <div class="state-preview">
+                        <pre style="font-size: 12px; color: var(--text-secondary);">
+┌─────────────────────────────────────────────────────────────┐
+│ 设置                                                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│              SkillDock v1.5.0                                │
+│                                                             │
+│ ──────────────────────────────────────────────────────────  │
+│                                                             │
+│ 语言                                                        │
+│                                                             │
+│   ○ 简体中文                                               │
+│   ○ English                                               │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">语言切换生效</div>
+                <div class="state-item">
+                    <div class="state-label">交互规则</div>
+                    <div class="state-description">
+                        <ul>
+                            <li>切换语言后立即生效，无需重启</li>
+                            <li>显示 Toast 反馈："语言已切换至 简体中文"</li>
+                            <li>选择持久化到 UserDefaults</li>
+                            <li>默认语言：简体中文</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Toast 反馈规范 -->
+        <div class="section" id="section-5">
+            <h2 class="section-title">5. Toast 反馈规范</h2>
+
+            <div class="state-group">
+                <div class="state-group-title">Toast 类型与时长</div>
+                <div class="state-item">
+                    <div class="state-label">规范表格</div>
+                    <table class="interaction-table">
+                        <thead>
+                            <tr>
+                                <th>类型</th>
+                                <th>颜色</th>
+                                <th>时长</th>
+                                <th>使用场景</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="toast success">Success</span></td>
+                                <td>#40c057</td>
+                                <td>3s</td>
+                                <td>操作成功（安装、移除、同步完成）</td>
+                            </tr>
+                            <tr>
+                                <td><span class="toast warning">Warning</span></td>
+                                <td>#fab005</td>
+                                <td>3s</td>
+                                <td>警告（部分失败、需要用户注意）</td>
+                            </tr>
+                            <tr>
+                                <td><span class="toast error">Error</span></td>
+                                <td>#fa5252</td>
+                                <td>5s</td>
+                                <td>错误（操作失败、网络问题）</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">v1.5 新增 Toast 文案</div>
+                <div class="state-item">
+                    <div class="state-label">新增文案</div>
+                    <div class="toast-demo">
+                        <div class="toast success">已安装 brainstorming</div>
+                        <div class="toast success">语言已切换至 English</div>
+                        <div class="toast warning">本地仓库中已有同名技能</div>
+                        <div class="toast error">安装失败：目标目录不可写</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. 确认弹窗规范 -->
+        <div class="section" id="section-6">
+            <h2 class="section-title">6. 确认弹窗规范</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                与 v1.3 保持一致，无变更。
+            </p>
+        </div>
+
+        <!-- 7. 交互行为规则表 -->
+        <div class="section" id="section-7">
+            <h2 class="section-title">7. 交互行为规则表</h2>
+
+            <div class="state-group">
+                <div class="state-group-title">分类 Tab 交互 <span class="tag new">NEW</span></div>
+                <div class="state-item">
+                    <table class="interaction-table">
+                        <thead>
+                            <tr>
+                                <th>触发</th>
+                                <th>用户操作</th>
+                                <th>系统行为</th>
+                                <th>反馈</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>用户</td>
+                                <td>点击"已安装"Tab</td>
+                                <td>1. 更新 Tab 激活态<br>2. 扫描当前应用目标目录<br>3. 显示已安装技能列表</td>
+                                <td>显示 loading → 显示列表</td>
+                            </tr>
+                            <tr>
+                                <td>用户</td>
+                                <td>点击"本地仓库"Tab</td>
+                                <td>1. 更新 Tab 激活态<br>2. 扫描所有来源目录<br>3. 显示仓库技能列表</td>
+                                <td>显示 loading → 显示列表</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">技能操作交互</div>
+                <div class="state-item">
+                    <table class="interaction-table">
+                        <thead>
+                            <tr>
+                                <th>触发</th>
+                                <th>用户操作</th>
+                                <th>系统行为</th>
+                                <th>反馈</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>用户</td>
+                                <td>在"本地仓库"点击"安装"</td>
+                                <td>1. 检查目标目录<br>2. 创建符号链接<br>3. 更新技能状态</td>
+                                <td>按钮变为"安装中" → Toast "已安装 xxx"</td>
+                            </tr>
+                            <tr>
+                                <td>用户</td>
+                                <td>在"已安装"点击"移除"</td>
+                                <td>1. 显示确认弹窗<br>2. 删除符号链接<br>3. 刷新列表</td>
+                                <td>确认弹窗 → Toast "已移除 xxx"</td>
+                            </tr>
+                            <tr>
+                                <td>用户</td>
+                                <td>点击"一键同步"</td>
+                                <td>1. 扫描来源目录<br>2. 计算差量<br>3. 执行同步</td>
+                                <td>按钮变为"同步中" → Toast "同步完成：新增 N 个"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="state-group">
+                <div class="state-group-title">语言切换交互 <span class="tag new">NEW</span></div>
+                <div class="state-item">
+                    <table class="interaction-table">
+                        <thead>
+                            <tr>
+                                <th>触发</th>
+                                <th>用户操作</th>
+                                <th>系统行为</th>
+                                <th>反馈</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>用户</td>
+                                <td>切换语言选项</td>
+                                <td>1. 更新语言配置<br>2. 重新加载界面文案</td>
+                                <td>Toast "语言已切换至 English"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. 新增应用 -->
+        <div class="section">
+            <h2 class="section-title">8. 新增应用配置 <span class="tag new">NEW</span></h2>
+
+            <div class="state-group">
+                <div class="state-group-title">应用列表扩展</div>
+                <div class="state-item">
+                    <div class="state-label">新增应用配置</div>
+                    <table class="interaction-table">
+                        <thead>
+                            <tr>
+                                <th>应用名</th>
+                                <th>枚举值</th>
+                                <th>图标颜色</th>
+                                <th>Skills 目录</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>WorkBuddy</td>
+                                <td>workBuddy</td>
+                                <td>#7950f2</td>
+                                <td>~/.workbuddy/skills/</td>
+                            </tr>
+                            <tr>
+                                <td>CodeBuddy</td>
+                                <td>codeBuddy</td>
+                                <td>#20c997</td>
+                                <td>~/.codebuddy/skills/</td>
+                            </tr>
+                            <tr>
+                                <td>Aion UI</td>
+                                <td>aionUI</td>
+                                <td>#fd7e14</td>
+                                <td>~/.aionui-config/skills/</td>
+                            </tr>
+                            <tr>
+                                <td>Qoder</td>
+                                <td>qoder</td>
+                                <td>#83c9be</td>
+                                <td>~/.qoder/skills/</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div style="text-align: center; color: var(--text-tertiary); font-size: 12px; padding: 40px 0;">
+            SkillDock v1.5 全状态设计参考 | 基于 v1.3 设计规范扩展
+        </div>
+    </div>
+</body>
+</html>
