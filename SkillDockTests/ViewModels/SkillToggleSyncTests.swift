@@ -12,8 +12,10 @@ final class SkillToggleSyncTests: XCTestCase {
         userDefaults.removePersistentDomain(forName: suiteName)
 
         let sourceRoot = try makeTempDirectory()
+        let installedRoot = try makeTempDirectory()
         defer {
             try? FileManager.default.removeItem(at: sourceRoot)
+            try? FileManager.default.removeItem(at: installedRoot)
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
@@ -23,14 +25,24 @@ final class SkillToggleSyncTests: XCTestCase {
             configManager: ConfigManager(userDefaults: userDefaults),
             skillScanner: SkillScanner(),
             fileService: FileService(),
+            appSkillsPathResolver: { _ in installedRoot.path },
             autoLoad: false
         )
         viewModel.load()
         XCTAssertTrue(viewModel.addSource(path: sourceRoot.path))
-        guard let skill = viewModel.skills.first else {
-            XCTFail("missing skill")
+        guard let source = viewModel.sources.first(where: { $0.path == sourceRoot.path }) else {
+            XCTFail("missing source")
             return
         }
+        let folderName = "brainstorming"
+        let skill = Skill(
+            folderName: folderName,
+            name: folderName,
+            description: "test skill",
+            sourceID: source.id,
+            sourcePath: sourceRoot.path,
+            fullPath: sourceRoot.appendingPathComponent(folderName, isDirectory: true).path
+        )
 
         viewModel.setSkillEnabled(false, for: skill)
         XCTAssertFalse(viewModel.isSkillEnabled(skill))
